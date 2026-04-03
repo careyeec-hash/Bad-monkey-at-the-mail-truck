@@ -5,20 +5,19 @@ interface Props {
 
 const { status } = Astro.props
 
-const statusColors: Record<string, string> = {
-  'new': 'badge-info',
-  'tracking': 'badge-warning',
-  'pursuing': 'badge-accent',
-  'won': 'badge-success',
-  'lost': 'badge-error',
-  'no-bid': 'badge-neutral',
-  'dismissed': 'badge-ghost',
-  'stale': 'badge-ghost',
+const dotClass: Record<string, string> = {
+  'new': 'status-new',
+  'tracking': 'status-tracking',
+  'pursuing': 'status-pursuing',
+  'won': 'status-won',
+  'lost': 'status-lost',
+  'no-bid': 'status-no-bid',
+  'dismissed': 'status-dismissed',
+  'stale': 'status-stale',
 }
-
-const badgeClass = statusColors[status] || 'badge-neutral'
 ---
 
-<span class:list={['badge', badgeClass]}>
-  {status}
+<span style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #374151;">
+  <span class:list={['status-dot', dotClass[status] || 'status-new']}></span>
+  {status.charAt(0).toUpperCase() + status.slice(1)}
 </span>

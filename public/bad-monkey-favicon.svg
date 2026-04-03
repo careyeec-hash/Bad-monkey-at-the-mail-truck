@@ -1,0 +1,159 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background - dark navy, slightly menacing -->
+  <circle cx="256" cy="256" r="256" fill="#131B3A"/>
+  
+  <!-- === MAIL TRUCK - tilted like monkey knocked it === -->
+  <g transform="rotate(-8, 280, 350)">
+    <!-- Truck body -->
+    <rect x="150" y="290" width="195" height="105" rx="6" fill="#E8E8E8"/>
+    <!-- Blue stripe -->
+    <rect x="150" y="355" width="195" height="22" fill="#2B4C7E"/>
+    <!-- Red accent stripe -->
+    <rect x="150" y="350" width="195" height="5" fill="#DC2626"/>
+    <!-- Truck cab -->
+    <rect x="320" y="310" width="80" height="85" rx="6" fill="#E8E8E8"/>
+    <!-- Windshield -->
+    <rect x="330" y="318" width="55" height="38" rx="4" fill="#6BAADB"/>
+    <!-- Headlight -->
+    <circle cx="395" cy="370" r="8" fill="#FCD34D"/>
+    <!-- Door seam -->
+    <line x1="225" y1="295" x2="225" y2="350" stroke="#C4C4C4" stroke-width="2"/>
+    <!-- Wheels -->
+    <circle cx="200" cy="400" r="24" fill="#1F1F1F"/>
+    <circle cx="200" cy="400" r="12" fill="#4B4B4B"/>
+    <circle cx="370" cy="400" r="24" fill="#1F1F1F"/>
+    <circle cx="370" cy="400" r="12" fill="#4B4B4B"/>
+    
+    <!-- Back door busted open -->
+    <rect x="130" y="295" width="25" height="80" rx="3" fill="#D1D1D1" transform="rotate(-25, 155, 335)"/>
+  </g>
+  
+  <!-- === ENVELOPES SCATTERED EVERYWHERE - chaos === -->
+  <g transform="rotate(-45, 60, 200)">
+    <rect x="42" y="188" width="34" height="24" rx="2" fill="white"/>
+    <rect x="46" y="204" width="14" height="3" rx="1.5" fill="#F59E0B"/>
+  </g>
+  <g transform="rotate(20, 420, 230)">
+    <rect x="402" y="218" width="30" height="22" rx="2" fill="white"/>
+    <rect x="406" y="232" width="12" height="3" rx="1.5" fill="#F59E0B"/>
+  </g>
+  <g transform="rotate(-15, 90, 370)">
+    <rect x="72" y="358" width="32" height="23" rx="2" fill="white"/>
+    <rect x="76" y="373" width="13" height="3" rx="1.5" fill="#EF4444"/>
+  </g>
+  <g transform="rotate(35, 440, 320)">
+    <rect x="422" y="308" width="28" height="20" rx="2" fill="white"/>
+    <rect x="426" y="320" width="11" height="3" rx="1.5" fill="#F59E0B"/>
+  </g>
+  <g transform="rotate(-60, 110, 440)">
+    <rect x="92" y="428" width="30" height="22" rx="2" fill="white"/>
+    <rect x="96" y="442" width="12" height="3" rx="1.5" fill="#F59E0B"/>
+  </g>
+  <g transform="rotate(50, 380, 180)">
+    <rect x="364" y="168" width="26" height="19" rx="2" fill="white"/>
+    <rect x="368" y="180" width="10" height="2.5" rx="1" fill="#EF4444"/>
+  </g>
+  
+  <!-- === THE BAD MONKEY - front and center, maximum attitude === -->
+  
+  <!-- Monkey body - hunched aggressive stance on truck roof -->
+  <ellipse cx="245" cy="290" rx="60" ry="30" fill="#6B4226"/>
+  
+  <!-- Monkey ears - big, expressive -->
+  <ellipse cx="170" cy="160" rx="35" ry="38" fill="#6B4226"/>
+  <ellipse cx="170" cy="160" rx="22" ry="25" fill="#C4956A"/>
+  <ellipse cx="320" cy="160" rx="35" ry="38" fill="#6B4226"/>
+  <ellipse cx="320" cy="160" rx="22" ry="25" fill="#C4956A"/>
+  
+  <!-- Head - slightly tilted for attitude -->
+  <g transform="rotate(3, 245, 180)">
+    <!-- Monkey head -->
+    <ellipse cx="245" cy="180" rx="90" ry="85" fill="#6B4226"/>
+    
+    <!-- Face -->
+    <ellipse cx="245" cy="195" rx="65" ry="60" fill="#C4956A"/>
+    
+    <!-- Brow ridge - heavy, intimidating -->
+    <path d="M175 160 Q200 140 245 148 Q290 140 315 160" fill="#5A3520" stroke="none"/>
+    
+    <!-- Eyes - WILD, unhinged, one slightly bigger than the other -->
+    <!-- Left eye - slightly squinted, scheming -->
+    <ellipse cx="215" cy="172" rx="20" ry="18" fill="#FFFDE8"/>
+    <circle cx="220" cy="171" r="12" fill="#1A1A1A"/>
+    <circle cx="224" cy="168" r="4" fill="white"/>
+    <!-- Bloodshot line -->
+    <line x1="198" y1="168" x2="207" y2="172" stroke="#DC2626" stroke-width="1.5" opacity="0.7"/>
+    
+    <!-- Right eye - wide open, manic -->
+    <ellipse cx="275" cy="170" rx="22" ry="22" fill="#FFFDE8"/>
+    <circle cx="279" cy="169" r="13" fill="#1A1A1A"/>
+    <circle cx="283" cy="165" r="4.5" fill="white"/>
+    <!-- Bloodshot lines -->
+    <line x1="294" y1="162" x2="285" y2="168" stroke="#DC2626" stroke-width="1.5" opacity="0.7"/>
+    <line x1="293" y1="174" x2="286" y2="173" stroke="#DC2626" stroke-width="1.5" opacity="0.6"/>
+    
+    <!-- Eyebrows - angry/manic -->
+    <path d="M192 148 Q208 133 240 143" stroke="#3D2213" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <path d="M298 148 Q282 130 258 140" stroke="#3D2213" stroke-width="7" fill="none" stroke-linecap="round"/>
+    
+    <!-- Nose - wide, flared -->
+    <ellipse cx="245" cy="200" rx="15" ry="11" fill="#4A2E18"/>
+    <!-- Nostrils -->
+    <ellipse cx="238" cy="202" rx="5" ry="4" fill="#2D1A0E"/>
+    <ellipse cx="252" cy="202" rx="5" ry="4" fill="#2D1A0E"/>
+    
+    <!-- Mouth - BIG menacing grin, teeth showing -->
+    <path d="M205 222 Q215 218 245 240 Q275 218 285 222" fill="#2D1A0E"/>
+    <!-- Upper teeth - jagged, not perfect -->
+    <path d="M212 222 L222 232 L232 222 L242 234 L252 222 L262 232 L272 222 L280 228" fill="white" stroke="none"/>
+    <!-- Lower jaw shadow -->
+    <path d="M210 225 Q245 255 280 225" fill="#3D2213" opacity="0.3"/>
+    
+    <!-- Wrinkles around grin -->
+    <path d="M200 215 Q195 220 198 228" stroke="#8B6340" stroke-width="1.5" fill="none"/>
+    <path d="M290 215 Q295 220 292 228" stroke="#8B6340" stroke-width="1.5" fill="none"/>
+  </g>
+  
+  <!-- Left arm - reaching out holding an envelope like a trophy -->
+  <path d="M190 275 Q140 260 110 230 Q95 215 85 195" stroke="#6B4226" stroke-width="22" fill="none" stroke-linecap="round"/>
+  <!-- Left hand/fist -->
+  <circle cx="83" cy="192" r="16" fill="#6B4226"/>
+  <!-- Envelope being held up triumphantly -->
+  <g transform="rotate(-25, 83, 175)">
+    <rect x="62" y="162" width="42" height="30" rx="3" fill="white" stroke="#D1D5DB" stroke-width="1"/>
+    <path d="M62 162 L83 180 L104 162" fill="none" stroke="#D1D5DB" stroke-width="1.5"/>
+    <!-- HOT LEAD stamp -->
+    <rect x="68" y="182" width="24" height="5" rx="2" fill="#EF4444"/>
+  </g>
+  
+  <!-- Right arm - gripping truck roof aggressively -->
+  <path d="M300 275 Q340 280 360 290 Q380 300 385 310" stroke="#6B4226" stroke-width="20" fill="none" stroke-linecap="round"/>
+  <circle cx="387" cy="312" r="14" fill="#6B4226"/>
+  <!-- Fingers gripping -->
+  <ellipse cx="395" cy="318" rx="7" ry="5" fill="#6B4226" transform="rotate(20, 395, 318)"/>
+  <ellipse cx="390" cy="324" rx="7" ry="5" fill="#6B4226" transform="rotate(10, 390, 324)"/>
+  
+  <!-- Tail - whipping around aggressively -->
+  <path d="M270 295 Q330 270 370 230 Q400 200 410 160 Q415 140 400 135 Q385 132 378 148" stroke="#6B4226" stroke-width="11" fill="none" stroke-linecap="round"/>
+  
+  <!-- === IMPACT/ACTION EFFECTS === -->
+  
+  <!-- Starburst behind monkey head - comic book energy -->
+  <g opacity="0.15">
+    <line x1="245" y1="100" x2="245" y2="60" stroke="#F59E0B" stroke-width="4"/>
+    <line x1="180" y1="120" x2="155" y2="85" stroke="#F59E0B" stroke-width="3"/>
+    <line x1="310" y1="120" x2="340" y2="88" stroke="#F59E0B" stroke-width="3"/>
+    <line x1="150" y1="165" x2="110" y2="150" stroke="#F59E0B" stroke-width="3"/>
+    <line x1="340" y1="165" x2="380" y2="148" stroke="#F59E0B" stroke-width="3"/>
+  </g>
+  
+  <!-- Speed/chaos lines around truck -->
+  <line x1="120" y1="310" x2="55" y2="305" stroke="#4A6FA5" stroke-width="3" opacity="0.5" stroke-linecap="round"/>
+  <line x1="115" y1="335" x2="40" y2="332" stroke="#4A6FA5" stroke-width="2.5" opacity="0.4" stroke-linecap="round"/>
+  <line x1="125" y1="360" x2="60" y2="360" stroke="#4A6FA5" stroke-width="2" opacity="0.35" stroke-linecap="round"/>
+  
+  <!-- Dust clouds at wheels -->
+  <circle cx="155" cy="420" r="12" fill="#4A6FA5" opacity="0.2"/>
+  <circle cx="140" cy="430" r="15" fill="#4A6FA5" opacity="0.15"/>
+  <circle cx="170" cy="435" r="10" fill="#4A6FA5" opacity="0.12"/>
+</svg>

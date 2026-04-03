@@ -5,10 +5,10 @@ interface Props {
 
 const { fitType } = Astro.props
 
-const fitColors: Record<string, string> = {
-  'gc-scope': 'badge-success',
-  'concrete-scope': 'badge-warning',
-  'both': 'badge-accent',
+const cls: Record<string, string> = {
+  'gc-scope': 'fit-gc',
+  'concrete-scope': 'fit-concrete',
+  'both': 'fit-both',
 }
 
 const labels: Record<string, string> = {
@@ -16,11 +16,8 @@ const labels: Record<string, string> = {
   'concrete-scope': 'Concrete',
   'both': 'GC + Concrete',
 }
-
-const badgeClass = fitColors[fitType] || 'badge-neutral'
-const label = labels[fitType] || fitType
 ---
 
-<span class:list={['badge', badgeClass]}>
-  {label}
+<span class:list={['fit-pill', cls[fitType] || 'fit-gc']}>
+  {labels[fitType] || fitType}
 </span>

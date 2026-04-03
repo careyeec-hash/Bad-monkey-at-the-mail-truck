@@ -8,9 +8,310 @@
   --color-secondary: #4A6FA5;
   --color-accent: #F59E0B;
   --color-neutral: #374151;
-  --color-base-100: #FFFFFF;
+  --color-base-100: #FAFAFA;
+  --color-base-200: #F3F4F6;
+  --color-base-300: #E5E7EB;
+  --color-base-content: #222222;
   --color-info: #3B82F6;
   --color-success: #10B981;
   --color-warning: #F59E0B;
   --color-error: #EF4444;
+}
+
+/* Typography */
+html {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+  color: #222222;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 260px;
+  min-height: 100vh;
+  background: #1E2761;
+  color: #ffffff;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease;
+}
+
+.sidebar-logo {
+  padding: 24px 20px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.sidebar-nav {
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.7);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.sidebar-link:hover {
+  background: rgba(255,255,255,0.1);
+  color: #ffffff;
+}
+
+.sidebar-link.active {
+  background: rgba(255,255,255,0.15);
+  color: #ffffff;
+  border-left: 3px solid #F59E0B;
+  padding-left: 9px;
+}
+
+.main-content {
+  margin-left: 260px;
+  min-height: 100vh;
+  background: #FAFAFA;
+}
+
+/* Cards */
+.card-surface {
+  background: #ffffff;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.card-surface:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* Score pills */
+.score-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.score-hot { background: #FEE2E2; color: #DC2626; }
+.score-warm { background: #FEF3C7; color: #D97706; }
+.score-watch { background: #DBEAFE; color: #2563EB; }
+.score-low { background: #F3F4F6; color: #6B7280; }
+
+/* Status dots */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.status-new { background: #3B82F6; }
+.status-tracking { background: #F59E0B; }
+.status-pursuing { background: #8B5CF6; }
+.status-won { background: #10B981; }
+.status-lost { background: #EF4444; }
+.status-no-bid { background: #9CA3AF; }
+.status-dismissed { background: #D1D5DB; }
+.status-stale { background: #D1D5DB; }
+
+/* Fit pills */
+.fit-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid;
+}
+
+.fit-gc { color: #059669; border-color: #A7F3D0; background: #ECFDF5; }
+.fit-concrete { color: #D97706; border-color: #FDE68A; background: #FFFBEB; }
+.fit-both { color: #7C3AED; border-color: #C4B5FD; background: #F5F3FF; }
+
+/* Text helpers */
+.text-primary-heading {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.02em;
+}
+
+.text-secondary {
+  color: #6B7280;
+  font-size: 14px;
+}
+
+.text-muted {
+  color: #9CA3AF;
+  font-size: 13px;
+}
+
+/* Stat cards */
+.stat-card {
+  background: #ffffff;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.stat-card .stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.stat-card .stat-label {
+  font-size: 13px;
+  color: #6B7280;
+  margin-top: 4px;
+}
+
+/* Empty states */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: #9CA3AF;
+  font-size: 15px;
+}
+
+/* Lead card rows */
+.lead-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: #ffffff;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  transition: box-shadow 0.15s ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+.lead-row:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* Mobile bottom bar */
+.mobile-bar {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #1E2761;
+  z-index: 40;
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+}
+
+.mobile-bar a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: rgba(255,255,255,0.6);
+  font-size: 11px;
+  text-decoration: none;
+  padding: 4px 0;
+}
+
+.mobile-bar a.active {
+  color: #F59E0B;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main-content { margin-left: 0; padding-bottom: 72px; }
+  .mobile-bar { display: flex; justify-content: space-around; }
+}
+
+/* Forms */
+.form-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  font-size: 15px;
+  background: #ffffff;
+  transition: border-color 0.15s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #1E2761;
+  box-shadow: 0 0 0 3px rgba(30,39,97,0.1);
+}
+
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+/* Buttons */
+.btn-primary-custom {
+  background: #1E2761;
+  color: #ffffff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-primary-custom:hover {
+  background: #2a3578;
+}
+
+.btn-ghost-custom {
+  color: #6B7280;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-ghost-custom:hover {
+  background: #F3F4F6;
+  color: #111827;
 }

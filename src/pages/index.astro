@@ -3,30 +3,34 @@ import Layout from '../layouts/Layout.astro'
 ---
 
 <Layout title="Today's Briefing">
-  <div class="flex items-center justify-between mb-6">
-    <h1 class="text-3xl font-bold">Today's Briefing</h1>
-    <a href="/leads/new" class="btn btn-primary">+ Add Lead</a>
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px;">
+    <h1 class="text-primary-heading">Today's Briefing</h1>
+    <a href="/leads/new" class="btn-primary-custom">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+      Add Lead
+    </a>
   </div>
 
-  <div class="alert alert-info mb-6">
-    <span>No briefings yet. The agent hasn't run its first daily scan.</span>
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;">
+    <div class="stat-card">
+      <div class="stat-value" style="color: #111827;">0</div>
+      <div class="stat-label">Active Leads</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color: #DC2626;">0</div>
+      <div class="stat-label">Hot This Week</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color: #10B981;">8</div>
+      <div class="stat-label">Sources Active</div>
+    </div>
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-    <div class="stat bg-base-200 rounded-box">
-      <div class="stat-title">Active Leads</div>
-      <div class="stat-value">0</div>
-      <div class="stat-desc">In pipeline</div>
-    </div>
-    <div class="stat bg-base-200 rounded-box">
-      <div class="stat-title">Hot This Week</div>
-      <div class="stat-value text-error">0</div>
-      <div class="stat-desc">Score 8+</div>
-    </div>
-    <div class="stat bg-base-200 rounded-box">
-      <div class="stat-title">Sources Active</div>
-      <div class="stat-value text-success">0</div>
-      <div class="stat-desc">of 18 configured</div>
+  <div class="card-surface" style="padding: 24px;">
+    <h2 style="font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 16px;">Latest Briefing</h2>
+    <div class="empty-state">
+      <p style="font-size: 15px; color: #6B7280;">No briefings yet.</p>
+      <p style="font-size: 13px; color: #9CA3AF; margin-top: 4px;">The agent hasn't run its first daily scan. Briefings will appear here after each run.</p>
     </div>
   </div>
 </Layout>

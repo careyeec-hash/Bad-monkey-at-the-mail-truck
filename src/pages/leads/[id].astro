@@ -19,61 +19,71 @@ if (error || !lead) {
 ---
 
 <Layout title={lead.project_name}>
-  <div class="mb-4">
-    <a href="/leads" class="btn btn-ghost btn-sm">&larr; Back to Pipeline</a>
-  </div>
+  <a href="/leads" class="btn-ghost-custom" style="margin-bottom: 16px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+    Back to Pipeline
+  </a>
 
-  <div class="flex items-start justify-between mb-6">
-    <div>
-      <h1 class="text-3xl font-bold">{lead.project_name}</h1>
-      <p class="text-base-content/60">{lead.address}</p>
-    </div>
-    <div class="flex gap-2">
-      <ScoreBadge score={lead.actionability_score || 0} />
-      <StatusBadge status={lead.status} />
-      {lead.fit_type && <FitBadge fitType={lead.fit_type} />}
-    </div>
-  </div>
-
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <div class="card bg-base-200">
-      <div class="card-body">
-        <h2 class="card-title">Project Details</h2>
-        <dl class="grid grid-cols-2 gap-2 text-sm">
-          <dt class="font-semibold">Type</dt>
-          <dd>{lead.project_type || '—'}</dd>
-          <dt class="font-semibold">Stage</dt>
-          <dd>{lead.stage || '—'}</dd>
-          <dt class="font-semibold">Est. Value</dt>
-          <dd>{lead.estimated_value || '—'}</dd>
-          <dt class="font-semibold">GC Assigned</dt>
-          <dd>{lead.gc_assigned ? lead.gc_name || 'Yes' : 'No'}</dd>
-          <dt class="font-semibold">Source</dt>
-          <dd>{lead.source_name || lead.source_type}</dd>
-        </dl>
+  <!-- Header -->
+  <div class="card-surface" style="padding: 24px; margin-bottom: 20px;">
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;">
+      <div style="flex: 1;">
+        <h1 style="font-size: 22px; font-weight: 700; color: #111827; margin-bottom: 4px;">{lead.project_name}</h1>
+        <p class="text-secondary">{lead.address}</p>
       </div>
-    </div>
-
-    <div class="card bg-base-200">
-      <div class="card-body">
-        <h2 class="card-title">Why It Matters</h2>
-        <p>{lead.why_it_matters || 'No analysis available.'}</p>
-        {lead.action_item && (
-          <div class="mt-4">
-            <h3 class="font-semibold">Action Item</h3>
-            <p class="text-accent">{lead.action_item}</p>
-          </div>
-        )}
+      <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+        <ScoreBadge score={lead.actionability_score || 0} />
+        <StatusBadge status={lead.status} />
+        {lead.fit_type && <FitBadge fitType={lead.fit_type} />}
       </div>
     </div>
   </div>
 
-  <div class="mt-6">
-    <h2 class="text-xl font-bold mb-4">Notes & Activity</h2>
-    <div class="timeline timeline-vertical">
-      {(lead.lead_notes || []).length === 0 && (
-        <p class="text-base-content/60">No notes yet.</p>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+    <!-- Project Details -->
+    <div class="card-surface" style="padding: 24px;">
+      <h2 style="font-size: 15px; font-weight: 600; color: #111827; margin-bottom: 16px;">Project Details</h2>
+      <dl style="display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 14px;">
+        <dt style="color: #6B7280; font-weight: 500;">Type</dt>
+        <dd style="color: #111827;">{lead.project_type || '—'}</dd>
+        <dt style="color: #6B7280; font-weight: 500;">Stage</dt>
+        <dd style="color: #111827;">{lead.stage || '—'}</dd>
+        <dt style="color: #6B7280; font-weight: 500;">Est. Value</dt>
+        <dd style="color: #111827;">{lead.estimated_value || '—'}</dd>
+        <dt style="color: #6B7280; font-weight: 500;">GC Assigned</dt>
+        <dd style="color: #111827;">{lead.gc_assigned ? lead.gc_name || 'Yes' : 'No'}</dd>
+        <dt style="color: #6B7280; font-weight: 500;">Source</dt>
+        <dd style="color: #111827;">{lead.source_name || lead.source_type}</dd>
+      </dl>
+    </div>
+
+    <!-- Why It Matters -->
+    <div class="card-surface" style="padding: 24px;">
+      <h2 style="font-size: 15px; font-weight: 600; color: #111827; margin-bottom: 16px;">Why It Matters</h2>
+      <p style="font-size: 14px; color: #374151; line-height: 1.6;">{lead.why_it_matters || 'No analysis available.'}</p>
+      {lead.action_item && (
+        <div style="margin-top: 16px; padding: 12px; background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 8px;">
+          <div style="font-size: 12px; font-weight: 600; color: #92400E; margin-bottom: 4px;">Action Item</div>
+          <div style="font-size: 14px; color: #92400E;">{lead.action_item}</div>
+        </div>
       )}
     </div>
+  </div>
+
+  <!-- Notes -->
+  <div class="card-surface" style="padding: 24px;">
+    <h2 style="font-size: 15px; font-weight: 600; color: #111827; margin-bottom: 16px;">Notes & Activity</h2>
+    {(lead.lead_notes || []).length === 0 ? (
+      <p class="text-secondary">No notes yet.</p>
+    ) : (
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        {(lead.lead_notes || []).map((note: any) => (
+          <div style="padding: 12px; background: #F9FAFB; border-radius: 8px;">
+            <div style="font-size: 12px; color: #9CA3AF; margin-bottom: 4px;">{note.author} · {new Date(note.created_at).toLocaleDateString()}</div>
+            <div style="font-size: 14px; color: #374151;">{note.text}</div>
+          </div>
+        ))}
+      </div>
+    )}
   </div>
 </Layout>

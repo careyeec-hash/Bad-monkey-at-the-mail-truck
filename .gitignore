@@ -29,3 +29,5 @@ Thumbs.db
 # jetbrains setting folder
 .idea/
 .vercel
+
+.vercel

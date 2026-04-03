@@ -17,14 +17,15 @@ interface Props {
 const { id, projectName, address, score, status, fitType, projectType, actionItem } = Astro.props
 ---
 
-<tr class="hover">
-  <td><ScoreBadge score={score} /></td>
-  <td>
-    <a href={`/leads/${id}`} class="link link-primary font-semibold">{projectName}</a>
-    <div class="text-sm text-base-content/60">{address}</div>
-  </td>
-  <td><span class="badge badge-outline">{projectType}</span></td>
-  <td><FitBadge fitType={fitType} /></td>
-  <td><StatusBadge status={status} /></td>
-  <td class="text-sm max-w-xs truncate">{actionItem}</td>
-</tr>
+<a href={`/leads/${id}`} class="lead-row">
+  <ScoreBadge score={score} />
+  <div style="flex: 1; min-width: 0;">
+    <div style="font-size: 15px; font-weight: 600; color: #111827;">{projectName}</div>
+    <div style="font-size: 13px; color: #9CA3AF; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{address}</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+    {projectType && <span style="font-size: 12px; color: #6B7280; background: #F3F4F6; padding: 2px 8px; border-radius: 4px;">{projectType}</span>}
+    {fitType && <FitBadge fitType={fitType} />}
+    <StatusBadge status={status} />
+  </div>
+</a>

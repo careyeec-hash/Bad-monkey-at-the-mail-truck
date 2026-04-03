@@ -3,9 +3,12 @@ import Layout from '../layouts/Layout.astro'
 ---
 
 <Layout title="Briefing Archive">
-  <h1 class="text-3xl font-bold mb-6">Briefing Archive</h1>
+  <h1 class="text-primary-heading" style="margin-bottom: 24px;">Archive</h1>
 
-  <div class="alert alert-info">
-    <span>No past briefings yet. They'll appear here after the agent runs.</span>
+  <div class="card-surface">
+    <div class="empty-state">
+      <p style="font-size: 15px; color: #6B7280;">No past briefings yet.</p>
+      <p style="font-size: 13px; color: #9CA3AF; margin-top: 4px;">They'll appear here after the agent runs.</p>
+    </div>
   </div>
 </Layout>

@@ -10,21 +10,22 @@ interface Props {
 const { date, hotLeads, watchList, totalItems, slug } = Astro.props
 ---
 
-<a href={`/${slug}`} class="card bg-base-200 hover:bg-base-300 transition-colors">
-  <div class="card-body">
-    <h3 class="card-title">{date}</h3>
-    <div class="flex gap-4">
-      <div class="stat p-0">
-        <div class="stat-value text-error text-2xl">{hotLeads}</div>
-        <div class="stat-desc">Act Now</div>
-      </div>
-      <div class="stat p-0">
-        <div class="stat-value text-warning text-2xl">{watchList}</div>
-        <div class="stat-desc">Watch</div>
-      </div>
-      <div class="stat p-0">
-        <div class="stat-value text-2xl">{totalItems}</div>
-        <div class="stat-desc">Total</div>
+<a href={`/${slug}`} class="card-surface" style="display: block; padding: 20px; text-decoration: none; color: inherit; transition: box-shadow 0.15s ease;">
+  <div style="display: flex; align-items: center; justify-content: space-between;">
+    <div>
+      <div style="font-size: 15px; font-weight: 600; color: #111827;">{date}</div>
+      <div style="font-size: 13px; color: #9CA3AF; margin-top: 2px;">{totalItems} items evaluated</div>
+    </div>
+    <div style="display: flex; gap: 16px; text-align: center;">
+      {hotLeads > 0 && (
+        <div>
+          <div style="font-size: 20px; font-weight: 700; color: #DC2626;">{hotLeads}</div>
+          <div style="font-size: 11px; color: #9CA3AF;">Hot</div>
+        </div>
+      )}
+      <div>
+        <div style="font-size: 20px; font-weight: 700; color: #D97706;">{watchList}</div>
+        <div style="font-size: 11px; color: #9CA3AF;">Watch</div>
       </div>
     </div>
   </div>

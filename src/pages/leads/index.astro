@@ -3,49 +3,27 @@ import Layout from '../../layouts/Layout.astro'
 ---
 
 <Layout title="Lead Pipeline">
-  <div class="flex items-center justify-between mb-6">
-    <h1 class="text-3xl font-bold">Lead Pipeline</h1>
-    <a href="/leads/new" class="btn btn-primary">+ Add Lead</a>
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+    <h1 class="text-primary-heading">Lead Pipeline</h1>
+    <a href="/leads/new" class="btn-primary-custom">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+      Add Lead
+    </a>
   </div>
 
-  <div class="flex gap-2 mb-4 flex-wrap">
-    <select class="select select-bordered select-sm" id="status-filter">
-      <option value="">All Statuses</option>
-      <option value="new">New</option>
-      <option value="tracking">Tracking</option>
-      <option value="pursuing">Pursuing</option>
-      <option value="won">Won</option>
-      <option value="lost">Lost</option>
-      <option value="no-bid">No-Bid</option>
-      <option value="dismissed">Dismissed</option>
-    </select>
-    <select class="select select-bordered select-sm" id="fit-filter">
-      <option value="">All Fit Types</option>
-      <option value="gc-scope">GC Scope</option>
-      <option value="concrete-scope">Concrete Scope</option>
-      <option value="both">Both</option>
-    </select>
+  <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+    <button class="btn-ghost-custom" style="background: #F3F4F6; color: #111827; font-size: 13px;">All</button>
+    <button class="btn-ghost-custom" style="font-size: 13px;">New</button>
+    <button class="btn-ghost-custom" style="font-size: 13px;">Tracking</button>
+    <button class="btn-ghost-custom" style="font-size: 13px;">Pursuing</button>
+    <button class="btn-ghost-custom" style="font-size: 13px;">Won</button>
   </div>
 
-  <div class="overflow-x-auto">
-    <table class="table table-zebra w-full">
-      <thead>
-        <tr>
-          <th>Score</th>
-          <th>Project</th>
-          <th>Type</th>
-          <th>Fit</th>
-          <th>Status</th>
-          <th>Action Item</th>
-        </tr>
-      </thead>
-      <tbody id="leads-table">
-        <tr>
-          <td colspan="6" class="text-center py-8 text-base-content/60">
-            No leads yet. Add one manually or wait for the agent's first run.
-          </td>
-        </tr>
-      </tbody>
-    </table>
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div class="empty-state card-surface">
+      <p style="font-size: 15px; color: #6B7280;">No leads yet.</p>
+      <p style="font-size: 13px; color: #9CA3AF; margin-top: 4px;">Add one manually or wait for the agent's first run.</p>
+      <a href="/leads/new" class="btn-primary-custom" style="margin-top: 16px;">Add Your First Lead</a>
+    </div>
   </div>
 </Layout>

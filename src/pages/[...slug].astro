@@ -1,22 +1,19 @@
 ---
 import Layout from '../layouts/Layout.astro'
 
-// Individual briefing pages — will be populated by content collections
-// once the agent starts generating daily briefings
-
 const { slug } = Astro.params
-
-// TODO: Load briefing from content collection by slug
 ---
 
 <Layout title={`Briefing — ${slug}`}>
-  <div class="mb-4">
-    <a href="/archive" class="btn btn-ghost btn-sm">&larr; Back to Archive</a>
-  </div>
+  <a href="/archive" class="btn-ghost-custom" style="margin-bottom: 16px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+    Back to Archive
+  </a>
 
-  <h1 class="text-3xl font-bold mb-6">Briefing: {slug}</h1>
-
-  <div class="alert alert-info">
-    <span>This briefing hasn't been generated yet.</span>
-  </div>
+  <article class="card-surface" style="padding: 32px;">
+    <h1 style="font-size: 22px; font-weight: 700; color: #111827; margin-bottom: 8px;">Briefing: {slug}</h1>
+    <div class="empty-state" style="padding: 24px;">
+      <p style="color: #9CA3AF;">This briefing hasn't been generated yet.</p>
+    </div>
+  </article>
 </Layout>

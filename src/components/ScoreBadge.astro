@@ -5,15 +5,9 @@ interface Props {
 
 const { score } = Astro.props
 
-const badgeClass = score >= 9
-  ? 'badge-error'
-  : score >= 7
-    ? 'badge-warning'
-    : score >= 5
-      ? 'badge-info'
-      : 'badge-neutral'
+const cls = score >= 9 ? 'score-hot' : score >= 7 ? 'score-warm' : score >= 5 ? 'score-watch' : 'score-low'
 ---
 
-<span class:list={['badge', 'badge-lg', 'font-bold', badgeClass]}>
-  {score}/10
+<span class:list={['score-pill', cls]}>
+  {score}
 </span>
