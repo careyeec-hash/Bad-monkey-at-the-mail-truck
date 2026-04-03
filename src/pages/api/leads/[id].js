@@ -22,6 +22,25 @@ export async function PUT({ params, request }) {
   const { id } = params
   const body = await request.json()
 
+  // Handle special _addNote action
+  if (body._addNote) {
+    const { author, text } = body._addNote
+    const { error } = await supabase.from('lead_notes').insert({
+      lead_id: id,
+      author: author || 'Tom Keilty',
+      text
+    })
+
+    if (error) {
+      return new Response(JSON.stringify({ error: error.message }), { status: 400 })
+    }
+
+    return new Response(JSON.stringify({ ok: true }), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+
+  // Regular lead update
   const { data, error } = await supabase
     .from('leads')
     .update(body)

@@ -1,14 +1,43 @@
 ---
 import Layout from '../layouts/Layout.astro'
+import { getCollection } from 'astro:content'
+
+const allBriefs = await getCollection('briefs')
+const sorted = allBriefs.sort((a, b) => b.data.date.localeCompare(a.data.date))
 ---
 
 <Layout title="Briefing Archive">
   <h1 class="text-primary-heading" style="margin-bottom: 24px;">Archive</h1>
 
-  <div class="card-surface">
-    <div class="empty-state">
-      <p style="font-size: 15px; color: #6B7280;">No past briefings yet.</p>
-      <p style="font-size: 13px; color: #9CA3AF; margin-top: 4px;">They'll appear here after the agent runs.</p>
+  {sorted.length > 0 ? (
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      {sorted.map(brief => (
+        <a href={`/${brief.id.replace('.md', '')}`} class="card-surface" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; text-decoration: none; color: inherit;">
+          <div>
+            <div style="font-size: 15px; font-weight: 600; color: #111827;">{brief.data.date}</div>
+            <div style="font-size: 13px; color: #9CA3AF; margin-top: 2px;">{brief.data.totalItems} items evaluated</div>
+          </div>
+          <div style="display: flex; gap: 16px; text-align: center;">
+            {brief.data.hotLeads > 0 && (
+              <div>
+                <div style="font-size: 18px; font-weight: 700; color: #DC2626;">{brief.data.hotLeads}</div>
+                <div style="font-size: 11px; color: #9CA3AF;">Hot</div>
+              </div>
+            )}
+            <div>
+              <div style="font-size: 18px; font-weight: 700; color: #D97706;">{brief.data.watchList}</div>
+              <div style="font-size: 11px; color: #9CA3AF;">Watch</div>
+            </div>
+          </div>
+        </a>
+      ))}
     </div>
-  </div>
+  ) : (
+    <div class="card-surface">
+      <div class="empty-state">
+        <p style="font-size: 15px; color: #6B7280;">No past briefings yet.</p>
+        <p style="font-size: 13px; color: #9CA3AF; margin-top: 4px;">They'll appear here after the agent runs.</p>
+      </div>
+    </div>
+  )}
 </Layout>

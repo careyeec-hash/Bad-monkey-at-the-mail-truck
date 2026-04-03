@@ -10,6 +10,11 @@ import Layout from '../../layouts/Layout.astro'
 
   <h1 class="text-primary-heading" style="margin-bottom: 24px;">Add Lead</h1>
 
+  <div id="success-msg" style="display:none; padding: 16px; background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 8px; margin-bottom: 20px; color: #065F46; font-size: 14px;">
+    Lead created! <a href="/leads" style="color: #065F46; font-weight: 600; text-decoration: underline;">View pipeline</a>
+  </div>
+  <div id="error-msg" style="display:none; padding: 16px; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; margin-bottom: 20px; color: #991B1B; font-size: 14px;"></div>
+
   <form id="new-lead-form" class="card-surface" style="padding: 32px; max-width: 640px;">
     <div style="margin-bottom: 20px;">
       <label class="form-label" for="project_name">Project Name *</label>
@@ -61,6 +66,75 @@ import Layout from '../../layouts/Layout.astro'
       <textarea id="notes" name="notes" class="form-input" rows="3" placeholder="What do you know about this project?" style="resize: vertical;"></textarea>
     </div>
 
-    <button type="submit" class="btn-primary-custom">Add Lead</button>
+    <button type="submit" class="btn-primary-custom" id="submit-btn">Add Lead</button>
   </form>
 </Layout>
+
+<script>
+  document.getElementById('new-lead-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const btn = document.getElementById('submit-btn')
+    const successMsg = document.getElementById('success-msg')
+    const errorMsg = document.getElementById('error-msg')
+    btn.textContent = 'Creating...'
+    btn.disabled = true
+    successMsg.style.display = 'none'
+    errorMsg.style.display = 'none'
+
+    const form = e.target
+    const address = form.address.value.trim()
+    const normalized = address.toUpperCase().replace(/\b(STREET|AVENUE|BOULEVARD|DRIVE|LANE|ROAD)\b/gi, m => {
+      const map = { street:'ST', avenue:'AVE', boulevard:'BLVD', drive:'DR', lane:'LN', road:'RD' }
+      return map[m.toLowerCase()] || m
+    }).replace(/\s+/g, ' ').trim()
+
+    const now = new Date()
+    const dateStr = now.toISOString().split('T')[0]
+    const id = `lead-${dateStr}-${String(Math.floor(Math.random() * 900) + 100)}`
+
+    const body = {
+      id,
+      project_name: form.project_name.value.trim(),
+      address,
+      normalized_address: normalized,
+      project_type: form.project_type.value || null,
+      estimated_value: form.estimated_value.value || null,
+      source_type: form.source_type.value,
+      referral_from: form.referral_from.value || null,
+      status: 'new',
+      assigned_to: 'Tom Keilty',
+      priority: 'medium',
+      profile: 'bristlecone'
+    }
+
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error || 'Failed to create lead')
+
+      successMsg.style.display = 'block'
+      form.reset()
+
+      // Also add the note if provided
+      const notes = form.notes?.value?.trim()
+      if (notes && data.id) {
+        await fetch(`/api/leads/${data.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ _addNote: { author: 'Tom Keilty', text: notes } })
+        })
+      }
+    } catch (err) {
+      errorMsg.textContent = err.message
+      errorMsg.style.display = 'block'
+    } finally {
+      btn.textContent = 'Add Lead'
+      btn.disabled = false
+    }
+  })
+</script>

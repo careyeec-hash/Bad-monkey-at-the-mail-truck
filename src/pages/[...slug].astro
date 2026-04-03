@@ -1,19 +1,49 @@
 ---
 import Layout from '../layouts/Layout.astro'
+import { getCollection } from 'astro:content'
 
 const { slug } = Astro.params
+
+const allBriefs = await getCollection('briefs')
+const brief = allBriefs.find(b => b.id === slug || b.id === slug + '.md')
+
+if (!brief) {
+  return Astro.redirect('/archive')
+}
+
+const { Content } = await brief.render()
 ---
 
-<Layout title={`Briefing — ${slug}`}>
+<Layout title={`Briefing — ${brief.data.date}`}>
   <a href="/archive" class="btn-ghost-custom" style="margin-bottom: 16px;">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
     Back to Archive
   </a>
 
-  <article class="card-surface" style="padding: 32px;">
-    <h1 style="font-size: 22px; font-weight: 700; color: #111827; margin-bottom: 8px;">Briefing: {slug}</h1>
-    <div class="empty-state" style="padding: 24px;">
-      <p style="color: #9CA3AF;">This briefing hasn't been generated yet.</p>
+  <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
+    <h1 class="text-primary-heading">Briefing: {brief.data.date}</h1>
+    <div style="display: flex; gap: 12px;">
+      {brief.data.hotLeads > 0 && <span style="font-size: 13px; font-weight: 600; color: #DC2626;">{brief.data.hotLeads} Hot</span>}
+      <span style="font-size: 13px; font-weight: 600; color: #D97706;">{brief.data.watchList} Watch</span>
+      <span style="font-size: 13px; color: #9CA3AF;">{brief.data.totalItems} total</span>
     </div>
+  </div>
+
+  <article class="card-surface briefing-content" style="padding: 32px;">
+    <Content />
   </article>
 </Layout>
+
+<style>
+  .briefing-content :global(h1) { font-size: 22px; font-weight: 700; color: #111827; margin: 24px 0 12px; }
+  .briefing-content :global(h2) { font-size: 18px; font-weight: 600; color: #1E2761; margin: 28px 0 12px; border-bottom: 1px solid #E5E7EB; padding-bottom: 8px; }
+  .briefing-content :global(h3) { font-size: 15px; font-weight: 600; color: #111827; margin: 20px 0 8px; }
+  .briefing-content :global(p) { font-size: 14px; color: #374151; line-height: 1.7; margin: 8px 0; }
+  .briefing-content :global(blockquote) { border-left: 3px solid #F59E0B; padding: 8px 16px; margin: 12px 0; background: #FFFBEB; border-radius: 0 8px 8px 0; }
+  .briefing-content :global(blockquote p) { color: #92400E; margin: 0; }
+  .briefing-content :global(strong) { font-weight: 600; }
+  .briefing-content :global(a) { color: #4A6FA5; text-decoration: underline; }
+  .briefing-content :global(hr) { border: none; border-top: 1px solid #E5E7EB; margin: 24px 0; }
+  .briefing-content :global(ul), .briefing-content :global(ol) { padding-left: 20px; margin: 8px 0; }
+  .briefing-content :global(li) { font-size: 14px; color: #374151; margin: 4px 0; }
+</style>

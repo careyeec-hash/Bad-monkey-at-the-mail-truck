@@ -9,13 +9,19 @@ const { id } = Astro.params
 
 const { data: lead, error } = await supabase
   .from('leads')
-  .select('*, lead_contacts(*), lead_notes(*), agent_updates(*)')
+  .select('*, lead_contacts(*), lead_notes(*, id, created_at, author, text), agent_updates(*)')
   .eq('id', id)
   .single()
 
 if (error || !lead) {
   return Astro.redirect('/leads')
 }
+
+const notes = (lead.lead_notes || []).sort((a: any, b: any) =>
+  new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+)
+
+const statuses = ['new', 'tracking', 'pursuing', 'won', 'lost', 'no-bid', 'dismissed']
 ---
 
 <Layout title={lead.project_name}>
@@ -26,9 +32,9 @@ if (error || !lead) {
 
   <!-- Header -->
   <div class="card-surface" style="padding: 24px; margin-bottom: 20px;">
-    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;">
-      <div style="flex: 1;">
-        <h1 style="font-size: 22px; font-weight: 700; color: #111827; margin-bottom: 4px;">{lead.project_name}</h1>
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+      <div style="flex: 1; min-width: 200px;">
+        <h1 style="font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 4px; line-height: 1.4;">{lead.project_name}</h1>
         <p class="text-secondary">{lead.address}</p>
       </div>
       <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
@@ -36,6 +42,21 @@ if (error || !lead) {
         <StatusBadge status={lead.status} />
         {lead.fit_type && <FitBadge fitType={lead.fit_type} />}
       </div>
+    </div>
+
+    <!-- Status change buttons -->
+    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #E5E7EB; display: flex; gap: 6px; flex-wrap: wrap;">
+      <span style="font-size: 12px; color: #9CA3AF; align-self: center; margin-right: 4px;">Move to:</span>
+      {statuses.filter(s => s !== lead.status).map(s => (
+        <button
+          class="status-change-btn"
+          data-lead-id={lead.id}
+          data-status={s}
+          style="padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; border: 1px solid #D1D5DB; background: white; cursor: pointer; color: #374151;"
+        >
+          {s.charAt(0).toUpperCase() + s.slice(1)}
+        </button>
+      ))}
     </div>
   </div>
 
@@ -54,6 +75,10 @@ if (error || !lead) {
         <dd style="color: #111827;">{lead.gc_assigned ? lead.gc_name || 'Yes' : 'No'}</dd>
         <dt style="color: #6B7280; font-weight: 500;">Source</dt>
         <dd style="color: #111827;">{lead.source_name || lead.source_type}</dd>
+        <dt style="color: #6B7280; font-weight: 500;">Priority</dt>
+        <dd style="color: #111827;">{lead.priority || '—'}</dd>
+        <dt style="color: #6B7280; font-weight: 500;">Created</dt>
+        <dd style="color: #111827;">{new Date(lead.created_at).toLocaleDateString()}</dd>
       </dl>
     </div>
 
@@ -67,23 +92,136 @@ if (error || !lead) {
           <div style="font-size: 14px; color: #92400E;">{lead.action_item}</div>
         </div>
       )}
+      {lead.enrichment_needed && lead.enrichment_needed.length > 0 && (
+        <div style="margin-top: 12px;">
+          <div style="font-size: 12px; font-weight: 600; color: #6B7280; margin-bottom: 4px;">Enrichment Needed</div>
+          <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+            {lead.enrichment_needed.map((e: string) => (
+              <span style="font-size: 11px; background: #F3F4F6; color: #6B7280; padding: 2px 8px; border-radius: 4px;">{e}</span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   </div>
+
+  <!-- Contacts -->
+  {lead.lead_contacts && lead.lead_contacts.length > 0 && (
+    <div class="card-surface" style="padding: 24px; margin-bottom: 20px;">
+      <h2 style="font-size: 15px; font-weight: 600; color: #111827; margin-bottom: 16px;">Contacts</h2>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        {lead.lead_contacts.map((c: any) => (
+          <div style="display: flex; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid #F3F4F6;">
+            <div style="width: 32px; height: 32px; background: #E5E7EB; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #6B7280;">{c.name?.charAt(0) || '?'}</div>
+            <div>
+              <div style="font-size: 14px; font-weight: 500; color: #111827;">{c.name}</div>
+              <div style="font-size: 12px; color: #9CA3AF;">{[c.role, c.company].filter(Boolean).join(' · ')}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )}
 
   <!-- Notes -->
   <div class="card-surface" style="padding: 24px;">
     <h2 style="font-size: 15px; font-weight: 600; color: #111827; margin-bottom: 16px;">Notes & Activity</h2>
-    {(lead.lead_notes || []).length === 0 ? (
-      <p class="text-secondary">No notes yet.</p>
-    ) : (
-      <div style="display: flex; flex-direction: column; gap: 12px;">
-        {(lead.lead_notes || []).map((note: any) => (
-          <div style="padding: 12px; background: #F9FAFB; border-radius: 8px;">
-            <div style="font-size: 12px; color: #9CA3AF; margin-bottom: 4px;">{note.author} · {new Date(note.created_at).toLocaleDateString()}</div>
-            <div style="font-size: 14px; color: #374151;">{note.text}</div>
-          </div>
-        ))}
-      </div>
-    )}
+
+    <!-- Add note form -->
+    <form id="add-note-form" style="margin-bottom: 20px; display: flex; gap: 8px;">
+      <input type="hidden" id="note-lead-id" value={lead.id} />
+      <input type="text" id="note-text" class="form-input" placeholder="Add a note..." style="flex: 1;" />
+      <button type="submit" class="btn-primary-custom" style="padding: 10px 16px; flex-shrink: 0;">Add</button>
+    </form>
+
+    <div id="notes-list">
+      {notes.length === 0 ? (
+        <p class="text-secondary">No notes yet.</p>
+      ) : (
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          {notes.map((note: any) => (
+            <div style="padding: 12px; background: #F9FAFB; border-radius: 8px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <span style="font-size: 12px; font-weight: 600; color: #6B7280;">{note.author}</span>
+                <span style="font-size: 12px; color: #9CA3AF;">{new Date(note.created_at).toLocaleDateString()}</span>
+              </div>
+              <div style="font-size: 14px; color: #374151;">{note.text}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   </div>
+
+  {lead.source_url && (
+    <div style="margin-top: 16px;">
+      <a href={lead.source_url} target="_blank" rel="noopener" class="btn-ghost-custom" style="font-size: 13px;">
+        View original source →
+      </a>
+    </div>
+  )}
 </Layout>
+
+<script>
+  // Status change buttons
+  document.querySelectorAll('.status-change-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const leadId = btn.dataset.leadId
+      const newStatus = btn.dataset.status
+      btn.textContent = '...'
+      btn.disabled = true
+
+      try {
+        const res = await fetch(`/api/leads/${leadId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus })
+        })
+        if (res.ok) {
+          window.location.reload()
+        } else {
+          const data = await res.json()
+          alert('Error: ' + (data.error || 'Failed to update'))
+          btn.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1)
+          btn.disabled = false
+        }
+      } catch (err) {
+        alert('Error: ' + err.message)
+        btn.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1)
+        btn.disabled = false
+      }
+    })
+  })
+
+  // Add note form
+  document.getElementById('add-note-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const leadId = document.getElementById('note-lead-id').value
+    const noteInput = document.getElementById('note-text')
+    const text = noteInput.value.trim()
+    if (!text) return
+
+    const btn = e.target.querySelector('button')
+    btn.textContent = '...'
+    btn.disabled = true
+
+    try {
+      // Add note via a custom endpoint — we'll handle it in the PUT
+      const res = await fetch(`/api/leads/${leadId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ _addNote: { author: 'Tom Keilty', text } })
+      })
+      if (res.ok) {
+        window.location.reload()
+      } else {
+        alert('Failed to add note')
+      }
+    } catch (err) {
+      alert('Error: ' + err.message)
+    } finally {
+      btn.textContent = 'Add'
+      btn.disabled = false
+    }
+  })
+</script>
