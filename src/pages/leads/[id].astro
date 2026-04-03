@@ -82,24 +82,51 @@ const statuses = ['new', 'tracking', 'pursuing', 'won', 'lost', 'no-bid', 'dismi
       </dl>
     </div>
 
-    <!-- Why It Matters -->
+    <!-- Analysis & Action -->
     <div class="card-surface" style="padding: 24px;">
-      <h2 style="font-size: 15px; font-weight: 600; color: #111827; margin-bottom: 16px;">Why It Matters</h2>
-      <p style="font-size: 14px; color: #374151; line-height: 1.6;">{lead.why_it_matters || 'No analysis available.'}</p>
       {lead.action_item && (
-        <div style="margin-top: 16px; padding: 12px; background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 8px;">
-          <div style="font-size: 12px; font-weight: 600; color: #92400E; margin-bottom: 4px;">Action Item</div>
-          <div style="font-size: 14px; color: #92400E;">{lead.action_item}</div>
+        <div style="padding: 14px; background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 8px; margin-bottom: 16px;">
+          <div style="font-size: 12px; font-weight: 700; color: #92400E; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">Next Action</div>
+          <div style="font-size: 14px; color: #92400E; line-height: 1.5;">{lead.action_item}</div>
         </div>
       )}
+
+      <h2 style="font-size: 15px; font-weight: 600; color: #111827; margin-bottom: 12px;">Analysis</h2>
+      {lead.why_it_matters ? (
+        <div style="font-size: 14px; color: #374151; line-height: 1.7;">
+          {lead.why_it_matters.split('\n\n').map((para: string) => {
+            if (para.startsWith('PITCH:')) {
+              return (
+                <div style="margin-top: 12px; padding: 12px; background: #EEF2FF; border: 1px solid #C7D2FE; border-radius: 8px;">
+                  <div style="font-size: 12px; font-weight: 700; color: #3730A3; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em;">Pitch Angle</div>
+                  <div style="font-size: 14px; color: #3730A3;">{para.replace('PITCH: ', '')}</div>
+                </div>
+              )
+            }
+            return <p style="margin: 8px 0;">{para}</p>
+          })}
+        </div>
+      ) : (
+        <p style="font-size: 14px; color: #9CA3AF;">No analysis available yet.</p>
+      )}
+
       {lead.enrichment_needed && lead.enrichment_needed.length > 0 && (
-        <div style="margin-top: 12px;">
-          <div style="font-size: 12px; font-weight: 600; color: #6B7280; margin-bottom: 4px;">Enrichment Needed</div>
+        <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #E5E7EB;">
+          <div style="font-size: 12px; font-weight: 600; color: #6B7280; margin-bottom: 6px;">Still Needed</div>
           <div style="display: flex; gap: 4px; flex-wrap: wrap;">
             {lead.enrichment_needed.map((e: string) => (
-              <span style="font-size: 11px; background: #F3F4F6; color: #6B7280; padding: 2px 8px; border-radius: 4px;">{e}</span>
+              <span style="font-size: 11px; background: #F3F4F6; color: #6B7280; padding: 3px 10px; border-radius: 999px;">{e}</span>
             ))}
           </div>
+        </div>
+      )}
+
+      {lead.source_url && (
+        <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #E5E7EB;">
+          <a href={lead.source_url} target="_blank" rel="noopener" style="font-size: 13px; color: #4A6FA5; text-decoration: underline; display: inline-flex; align-items: center; gap: 4px;">
+            View original source
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </a>
         </div>
       )}
     </div>

@@ -12,7 +12,7 @@ const sorted = allBriefs.sort((a, b) => b.data.date.localeCompare(a.data.date))
   {sorted.length > 0 ? (
     <div style="display: flex; flex-direction: column; gap: 8px;">
       {sorted.map(brief => (
-        <a href={`/${brief.id.replace('.md', '')}`} class="card-surface" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; text-decoration: none; color: inherit;">
+        <a href={`/briefing/${brief.id.replace('.md', '')}`} class="card-surface" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; text-decoration: none; color: inherit;">
           <div>
             <div style="font-size: 15px; font-weight: 600; color: #111827;">{brief.data.date}</div>
             <div style="font-size: 13px; color: #9CA3AF; margin-top: 2px;">{brief.data.totalItems} items evaluated</div>

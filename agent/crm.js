@@ -109,6 +109,7 @@ async function createLead(item, profile) {
   const lead = {
     id,
     project_name: item.one_line || item.originalItem?.title || 'Unknown Project',
+    // Store rich content in why_it_matters as combined field
     address: address,
     normalized_address: normalizeAddress(address),
     project_type: item.project_type || null,
@@ -126,7 +127,7 @@ async function createLead(item, profile) {
     bristlecone_fit: item.bristlecone_fit || null,
     fit_type: item.fit_type || null,
     action_item: item.action_item || null,
-    why_it_matters: item.why_it_matters || null,
+    why_it_matters: [item.project_summary, item.why_it_matters, item.pitch_angle ? 'PITCH: ' + item.pitch_angle : ''].filter(Boolean).join('\n\n') || null,
     enrichment_needed: item.enrichment_needed || [],
     status: 'new',
     assigned_to: assignedTo,

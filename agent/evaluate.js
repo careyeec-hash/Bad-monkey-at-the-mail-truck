@@ -59,12 +59,14 @@ For each item provide:
 - project_stage: planning | entitled | permitted | bidding | under-construction | completed | unknown
 - bristlecone_fit: strong-fit | possible-fit | concrete-scope | monitor | not-a-fit
 - fit_type: gc-scope | concrete-scope | both
-- one_line: one sentence summary
-- action_item: specific next step (only for 6+)
-- key_contacts: [{ name, company, role }] from content
-- why_it_matters: 2-3 sentences (only for 7+)
+- one_line: concise project name (e.g. "Halo Vista Mixed-Use — N Phoenix" not a full sentence)
+- project_summary: 2-3 sentence factual summary of the project — what's being built, where, how big, by whom
+- action_item: specific next step Tom should take RIGHT NOW. Be prescriptive — name the person to call, the angle to pitch, the relationship to leverage. For GC scope: "Call [developer] — pitch early preconstruction collaboration and cost certainty." For concrete scope: "Identify the GC and call to bid structural concrete." Always match Tom's pursuit process: network intro → phone → LinkedIn → email → quals.
+- pitch_angle: 1-2 sentences on WHY Bristlecone is the right fit for this specific project and what angle Tom should lead with (e.g. "Lead with your adaptive reuse track record — this project needs a builder who thrives on complexity" or "Pitch self-perform concrete — vertical pour on a project this size is your sweet spot")
+- key_contacts: [{ name, company, role }] extracted from the content. Include developers, architects, GCs, owners mentioned.
+- why_it_matters: 2-3 sentences explaining strategic importance for Bristlecone's Phoenix expansion
 - existing_lead_match: lead ID if updates an existing lead, null otherwise
-- enrichment_needed: array of what additional info would help
+- enrichment_needed: array of what additional info would help (e.g. "architect of record", "GC shortlist", "bid deadline", "delivery method")
 
 SCORING GUIDANCE:
 Actionability: ${p.scoringGuidance.actionability}

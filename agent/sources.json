@@ -56,6 +56,61 @@
       "consecutiveFailures": 0
     },
     {
+      "name": "Google News — Scottsdale Development",
+      "url": "https://news.google.com/rss/search?q=%22scottsdale%22+%28%22development%22+OR+%22construction%22+OR+%22permit%22+OR+%22rezoning%22%29&hl=en-US&gl=US&ceid=US:en",
+      "type": "rss",
+      "tier": 2,
+      "category": "news",
+      "active": true,
+      "notes": "Scottsdale-specific development news — Bristlecone HQ city.",
+      "lastSuccess": null,
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Google News — Phoenix Multifamily",
+      "url": "https://news.google.com/rss/search?q=%22phoenix%22+%22multifamily%22+%28%22apartment%22+OR+%22units%22+OR+%22housing%22%29&hl=en-US&gl=US&ceid=US:en",
+      "type": "rss",
+      "tier": 2,
+      "category": "news",
+      "active": true,
+      "notes": "Multifamily-specific news — Bristlecone's core sweet spot.",
+      "lastSuccess": null,
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Google News — Phoenix Real Estate Development",
+      "url": "https://news.google.com/rss/search?q=%22phoenix%22+%28%22real+estate+development%22+OR+%22mixed+use%22+OR+%22ground+breaking%22+OR+%22adaptive+reuse%22%29&hl=en-US&gl=US&ceid=US:en",
+      "type": "rss",
+      "tier": 2,
+      "category": "news",
+      "active": true,
+      "notes": "Mixed-use, adaptive reuse, and broader RE development.",
+      "lastSuccess": null,
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Google News — AZ Concrete Construction",
+      "url": "https://news.google.com/rss/search?q=%22arizona%22+%28%22concrete%22+OR+%22structural%22%29+%28%22construction%22+OR+%22project%22%29&hl=en-US&gl=US&ceid=US:en",
+      "type": "rss",
+      "tier": 2,
+      "category": "news",
+      "active": true,
+      "notes": "Concrete-specific — Bristlecone's self-perform division.",
+      "lastSuccess": null,
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Google News — Mesa Tempe Chandler Development",
+      "url": "https://news.google.com/rss/search?q=%28%22mesa%22+OR+%22tempe%22+OR+%22chandler%22%29+%28%22development%22+OR+%22construction%22+OR+%22project%22%29+%22arizona%22&hl=en-US&gl=US&ceid=US:en",
+      "type": "rss",
+      "tier": 2,
+      "category": "news",
+      "active": true,
+      "notes": "East Valley cities development news.",
+      "lastSuccess": null,
+      "consecutiveFailures": 0
+    },
+    {
       "name": "Bisnow Phoenix",
       "url": "https://www.bisnow.com/rss-feed/phoenix",
       "type": "rss",
