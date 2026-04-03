@@ -112,11 +112,14 @@ async function evaluateBatch(items, systemPrompt) {
     }]
   })
 
-  const text = message.content[0].text
+  let text = message.content[0].text
+  // Strip markdown fences if present
+  text = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '').trim()
   try {
     return JSON.parse(text)
   } catch {
     console.log('  [Evaluate] Warning: could not parse Opus response')
+    console.log('  [Evaluate] Raw response:', text.slice(0, 300))
     return []
   }
 }

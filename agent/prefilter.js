@@ -55,12 +55,14 @@ async function classifyBatch(items) {
     }]
   })
 
-  const text = message.content[0].text
+  let text = message.content[0].text
+  // Strip markdown fences if present
+  text = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '').trim()
   try {
     return JSON.parse(text)
   } catch {
-    // If Haiku returns invalid JSON, keep all items to be safe
     console.log('  [Pre-filter] Warning: could not parse Haiku response, keeping all items')
+    console.log('  [Pre-filter] Raw response:', text.slice(0, 200))
     return items.map(i => ({ url: i.url, keep: true, reason: 'parse-error-fallback' }))
   }
 }
