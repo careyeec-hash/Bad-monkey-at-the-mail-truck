@@ -1,5 +1,5 @@
 // Generic RSS feed parser — used for all RSS sources
-// Uses rss-parser, filters to last 48 hours
+// Uses rss-parser, filters to last 7 days
 
 import RssParser from 'rss-parser'
 
@@ -14,14 +14,16 @@ export default async function fetchRss(source) {
   const feed = await parser.parseURL(source.url)
 
   const cutoff = new Date()
-  cutoff.setHours(cutoff.getHours() - 48)
+  cutoff.setDate(cutoff.getDate() - 7)
 
+  const maxItems = source.maxItemsPerRun || 10
   const items = (feed.items || [])
     .filter(item => {
       if (!item.pubDate && !item.isoDate) return true // keep items with no date
       const itemDate = new Date(item.isoDate || item.pubDate)
       return itemDate >= cutoff
     })
+    .slice(0, maxItems) // cap per source to prevent any single feed from dominating
     .map(item => ({
       title: item.title || 'Untitled',
       url: item.link || item.guid || '',
@@ -40,6 +42,6 @@ export default async function fetchRss(source) {
       permitData: null
     }))
 
-  console.log(`  [RSS: ${source.name}] ${feed.items?.length || 0} total → ${items.length} in last 48h`)
+  console.log(`  [RSS: ${source.name}] ${feed.items?.length || 0} total → ${items.length} in last 7d`)
   return items
 }

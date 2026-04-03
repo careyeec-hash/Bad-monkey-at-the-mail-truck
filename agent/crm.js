@@ -33,17 +33,10 @@ export function normalizeAddress(address) {
 
 // --- Lead ID generation ---
 
-let dailySequence = 0
-let lastDate = ''
-
 function generateLeadId() {
   const today = new Date().toISOString().split('T')[0]
-  if (today !== lastDate) {
-    dailySequence = 0
-    lastDate = today
-  }
-  dailySequence++
-  return `lead-${today}-${String(dailySequence).padStart(3, '0')}`
+  const rand = Math.floor(Math.random() * 90000) + 10000
+  return `lead-${today}-${rand}`
 }
 
 // --- Core operations ---
@@ -76,17 +69,30 @@ export async function processLeads(evaluatedItems, profile) {
     // Check for existing lead by normalized address
     const { data: existing } = await supabase
       .from('leads')
-      .select('id, project_name')
+      .select('id, project_name, actionability_score, bristlecone_fit, action_item')
       .eq('normalized_address', normalized)
       .limit(1)
 
     if (existing && existing.length > 0) {
-      // Update existing lead
+      // Update existing lead — accumulate, don't overwrite
       const leadId = existing[0].id
+
+      // Re-score if new score is higher (lead accumulation: scores only go up)
+      const newScore = item.actionability_score || 0
+      const oldScore = existing[0].actionability_score || 0
+      if (newScore > oldScore) {
+        await supabase.from('leads').update({
+          actionability_score: newScore,
+          bristlecone_fit: item.bristlecone_fit || existing[0].bristlecone_fit,
+          action_item: item.action_item || existing[0].action_item,
+          priority: newScore >= 8 ? 'high' : newScore >= 5 ? 'medium' : 'low'
+        }).eq('id', leadId)
+      }
+
       await supabase.from('agent_updates').insert({
         lead_id: leadId,
         briefing_date: new Date().toISOString().split('T')[0],
-        update_text: `Agent update: ${item.one_line || 'New information found'}. Score: ${item.actionability_score}/10.`,
+        update_text: `Agent update: ${item.one_line || 'New information found'}. Score: ${item.actionability_score}/10.${newScore > oldScore ? ` (upgraded from ${oldScore})` : ''}`,
         source_url: item.url || item.originalItem?.url || null
       })
       updated++
@@ -109,6 +115,7 @@ async function createLead(item, profile) {
   const lead = {
     id,
     project_name: item.one_line || item.originalItem?.title || 'Unknown Project',
+    first_seen_at: new Date().toISOString(),
     // Store rich content in why_it_matters as combined field
     address: address,
     normalized_address: normalizeAddress(address),

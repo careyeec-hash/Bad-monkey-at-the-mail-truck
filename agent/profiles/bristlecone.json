@@ -25,19 +25,19 @@
   },
   "projectFit": {
     "strongFit": [
-      "Ground-up multifamily",
-      "Mixed-use urban development",
-      "Commercial office (Class A/B)",
-      "Hospitality (hotels, resorts)",
-      "Institutional (education, healthcare, government)",
-      "Complex repositioning / additions",
+      "Ground-up multifamily (Bristlecone's #1 — 60% of 45+ completed projects)",
+      "Mixed-use urban development (Edgewater Public Market, Littleton Mixed Use)",
+      "Hospitality — hotels, boutique restaurants, adaptive reuse (Courtyard Mile High, Catbird Hotel, AC Hotel RiNo, Warwick Hotel)",
+      "Institutional (education, healthcare, government — Founders Park, Harvard Square Memory Care)",
+      "Design-forward / boutique projects (Catbird Hotel, Jacques French, God Save the Cream)",
+      "Complex repositioning / additions / renovations (SW Denver YMCA, Warwick Hotel)",
       "Adaptive reuse",
       "Distressed / foreclosed / 'hairy' projects needing rescue"
     ],
     "possibleFit": [
       "Industrial / warehouse / distribution",
       "Tenant improvement ($2M+)",
-      "Senior living / assisted living"
+      "Senior living / memory care (proven: Harvard Square Memory Care)"
     ],
     "concreteScopeOnly": [
       "ANY commercial project where a competitor GC is building",
@@ -119,11 +119,70 @@
     "ceoNeeds": "Data-oriented: lead volume, pipeline value, stage progression, win rate"
   },
   "alertThreshold": 9,
-  "digestThreshold": 5,
+  "digestThreshold": 4,
   "enrichmentFlags": true,
   "prefilterExclusions": [
     "Single-family residential",
     "Horizontal infrastructure only",
     "Projects under $1M"
+  ],
+  "fewShotExamples": [
+    {
+      "title": "Halo Vista Mixed-Use — N Phoenix (Empire Group)",
+      "score": 9,
+      "reasoning": "Empire Group is a target developer. Mixed-use is Bristlecone's sweet spot. Phoenix location. No GC assigned yet. Tom should call his network for an intro to Empire Group's project lead immediately."
+    },
+    {
+      "title": "DPR Construction wins $80M data center — Chandler",
+      "score": 7,
+      "reasoning": "DPR (competitor) winning a large project = concrete scope opportunity. $80M project means significant structural concrete. Action: call DPR to bid the concrete package. Score 7 not 9 because GC is already assigned."
+    },
+    {
+      "title": "Greystar 350-unit multifamily — Tempe Town Lake",
+      "score": 9,
+      "reasoning": "Greystar is a target developer. 350-unit multifamily is perfect Bristlecone sweet spot. Tempe is Phoenix metro. Pre-planning stage means Tom can pitch early preconstruction collaboration. Score 9 — act this week."
+    },
+    {
+      "title": "City of Scottsdale approves zoning for senior living facility — N Scottsdale",
+      "score": 6,
+      "reasoning": "Senior living is a possible fit. Just entitled means early timing (good). But no developer or GC named, no project scale. Action: monitor for developer announcement. Score 6 — watch list, not hot."
+    },
+    {
+      "title": "Phoenix metro construction activity report — Q2 2026",
+      "score": 4,
+      "reasoning": "Market intelligence report. No specific project, no actionable contact. Useful context for Tom's pipeline understanding but no immediate action. Score 4 — include in briefing for awareness."
+    },
+    {
+      "title": "New warehouse loading dock expansion — Buckeye",
+      "score": 2,
+      "reasoning": "Horizontal infrastructure / light industrial expansion. Not Bristlecone's fit type. No structural concrete scope likely. Buckeye is far west valley. Score 2 — drop."
+    }
+  ],
+  "scoreFloors": [
+    {
+      "condition": "Target developer's project in Phoenix metro",
+      "minScore": 8,
+      "note": "Any target developer project is always 8+ regardless of other factors"
+    },
+    {
+      "condition": "Multifamily 100+ units with no GC assigned",
+      "minScore": 7,
+      "note": "Bristlecone's core sweet spot with open GC opportunity"
+    },
+    {
+      "condition": "Data center or semiconductor facility in AZ",
+      "minScore": 7,
+      "note": "Large-scale structural concrete scope even if not GC opportunity"
+    },
+    {
+      "condition": "RFP with bid deadline in next 30 days",
+      "minScore": 8,
+      "note": "Time-sensitive opportunity demands immediate action"
+    },
+    {
+      "condition": "Competitor GC wins project $20M+",
+      "minScore": 6,
+      "note": "Concrete scope sub opportunity — call the winning GC"
+    }
   ]
 }

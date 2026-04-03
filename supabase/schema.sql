@@ -9,6 +9,7 @@ CREATE TABLE leads (
   id            TEXT PRIMARY KEY,           -- "lead-2026-03-12-001"
   created_at    TIMESTAMPTZ DEFAULT NOW(),
   updated_at    TIMESTAMPTZ DEFAULT NOW(),
+  first_seen_at TIMESTAMPTZ DEFAULT NOW(), -- when agent first discovered this lead (for accumulation tracking)
 
   -- Project info
   project_name  TEXT NOT NULL,
@@ -166,3 +167,11 @@ CREATE TRIGGER leads_updated_at
   BEFORE UPDATE ON leads
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at();
+
+-- ============================================
+-- MIGRATION: Add first_seen_at to existing databases
+-- Run this if upgrading from a schema that predates lead accumulation tracking:
+--
+--   ALTER TABLE leads ADD COLUMN first_seen_at TIMESTAMPTZ DEFAULT NOW();
+--   UPDATE leads SET first_seen_at = created_at WHERE first_seen_at IS NULL;
+-- ============================================

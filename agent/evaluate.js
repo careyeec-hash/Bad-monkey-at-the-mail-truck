@@ -79,14 +79,37 @@ Pursuit Match: ${p.scoringGuidance.pursuitMatch}
 IMPORTANT — GC FIELD NOTE:
 ${p.scoringGuidance.gcFieldNote}
 
-Be aggressive about scoring. Most items = 3-5.
-Reserve 8-10 for act-this-week items.
-A target developer's new project = always 8+.
-An RFP due in 10 days for institutional = always 9+.
-A competitor winning a large project = 6 (track it).
-A concrete-scope opportunity on a $50M project = 7.
+SCORING — BE GENEROUS, NOT STINGY:
+- Score 4+ for anything construction-related in the Phoenix metro
+- Score 5+ for any project with a named developer, architect, or address
+- Score 6+ for any project where Tom could take an action
+- Score 7+ for projects matching Bristlecone's sweet spot (multifamily, mixed-use, institutional, adaptive reuse)
+- Score 8+ for act-this-week items with specific contacts
+- Score 9+ for target developer projects or RFPs with deadlines
+- A target developer's new project = always 8+
+- A competitor winning a large project = 6+ (concrete scope opportunity)
+- ANY project with no GC assigned in Bristlecone's sweet spot = 7+
+- Market signals and pipeline reports = 4-5
 
-Respond in JSON only. No markdown fences. Return a JSON array of objects.
+CRITICAL — BRISTLECONE FIT: For EVERY item scored 4+, you MUST explain specifically why this matters to Bristlecone and what angle Tom should use. Reference his company's differentiators: self-perform structural concrete, design-forward complex projects, early preconstruction collaboration, new market entry hunger. Every project_summary and pitch_angle must be filled in for items 4+.`
+
+  // Inject few-shot calibration examples if available in profile
+  if (p.fewShotExamples?.length > 0) {
+    prompt += `\n\nSCORING CALIBRATION EXAMPLES — use these to anchor your scoring consistency:`
+    for (const ex of p.fewShotExamples) {
+      prompt += `\n- "${ex.title}" → Score ${ex.score}: ${ex.reasoning}`
+    }
+  }
+
+  // Inject score floors if available in profile
+  if (p.scoreFloors?.length > 0) {
+    prompt += `\n\nSCORE FLOORS — minimum scores for these patterns (override your initial assessment if lower):`
+    for (const floor of p.scoreFloors) {
+      prompt += `\n- ${floor.condition} → minimum score ${floor.minScore} (${floor.note})`
+    }
+  }
+
+  prompt += `\n\nRespond in JSON only. No markdown fences. Return a JSON array of objects.
 Sort by actionability_score descending.`
 
   return prompt
@@ -120,9 +143,20 @@ async function evaluateBatch(items, systemPrompt) {
   try {
     return JSON.parse(text)
   } catch {
-    console.log('  [Evaluate] Warning: could not parse Opus response')
+    console.log('  [Evaluate] Warning: could not parse Opus response, creating stubs for manual review')
     console.log('  [Evaluate] Raw response:', text.slice(0, 300))
-    return []
+    // Keep-on-failure: create stub leads with score=0 and error flag so nothing gets silently dropped
+    return items.map(item => ({
+      url: item.url,
+      title: item.title,
+      actionability_score: 0,
+      category: item.sourceCategory || 'unknown',
+      project_type: 'unknown',
+      one_line: item.title || 'Evaluation parse error — manual review needed',
+      project_summary: 'Automated evaluation failed to parse. This item needs manual review.',
+      action_item: 'Review this item manually — agent evaluation encountered a parse error.',
+      _evaluationError: true
+    }))
   }
 }
 

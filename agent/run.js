@@ -1,7 +1,21 @@
-import 'dotenv/config'
+import { config } from 'dotenv'
 import { readFileSync } from 'fs'
-import { join, dirname } from 'path'
+import { join, dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
+// Load .env relative to agent directory, not cwd (Lesson: .env path assumptions break in CI)
+config({ path: resolve(__dirname, '.env') })
+
+// Validate required env vars before doing anything
+const REQUIRED_ENV = ['ANTHROPIC_API_KEY', 'SUPABASE_URL', 'SUPABASE_SERVICE_KEY']
+const missing = REQUIRED_ENV.filter(key => !process.env[key])
+if (missing.length > 0) {
+  console.error(`Missing required environment variables: ${missing.join(', ')}`)
+  console.error(`Ensure agent/.env exists and contains these keys.`)
+  process.exit(1)
+}
 
 import ingest from './ingest.js'
 import prefilter from './prefilter.js'
@@ -10,8 +24,6 @@ import { processLeads, logAgentRun } from './crm.js'
 import { generateBriefing, generateWeeklyEmail, generateUrgentAlert } from './generate.js'
 import publish from './publish.js'
 import { sendDigestEmail, sendUrgentAlert } from './email.js'
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
 
 // Bad Monkey At The Mail Truck — Daily Agent Pipeline
 // Runs daily at 6 AM MST via cron
