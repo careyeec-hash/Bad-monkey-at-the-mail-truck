@@ -1,0 +1,31 @@
+---
+interface Props {
+  date: string
+  hotLeads: number
+  watchList: number
+  totalItems: number
+  slug: string
+}
+
+const { date, hotLeads, watchList, totalItems, slug } = Astro.props
+---
+
+<a href={`/${slug}`} class="card bg-base-200 hover:bg-base-300 transition-colors">
+  <div class="card-body">
+    <h3 class="card-title">{date}</h3>
+    <div class="flex gap-4">
+      <div class="stat p-0">
+        <div class="stat-value text-error text-2xl">{hotLeads}</div>
+        <div class="stat-desc">Act Now</div>
+      </div>
+      <div class="stat p-0">
+        <div class="stat-value text-warning text-2xl">{watchList}</div>
+        <div class="stat-desc">Watch</div>
+      </div>
+      <div class="stat p-0">
+        <div class="stat-value text-2xl">{totalItems}</div>
+        <div class="stat-desc">Total</div>
+      </div>
+    </div>
+  </div>
+</a>

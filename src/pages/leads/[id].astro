@@ -1,0 +1,79 @@
+---
+import Layout from '../../layouts/Layout.astro'
+import ScoreBadge from '../../components/ScoreBadge.astro'
+import StatusBadge from '../../components/StatusBadge.astro'
+import FitBadge from '../../components/FitBadge.astro'
+import { supabase } from '../../lib/supabase.js'
+
+const { id } = Astro.params
+
+const { data: lead, error } = await supabase
+  .from('leads')
+  .select('*, lead_contacts(*), lead_notes(*), agent_updates(*)')
+  .eq('id', id)
+  .single()
+
+if (error || !lead) {
+  return Astro.redirect('/leads')
+}
+---
+
+<Layout title={lead.project_name}>
+  <div class="mb-4">
+    <a href="/leads" class="btn btn-ghost btn-sm">&larr; Back to Pipeline</a>
+  </div>
+
+  <div class="flex items-start justify-between mb-6">
+    <div>
+      <h1 class="text-3xl font-bold">{lead.project_name}</h1>
+      <p class="text-base-content/60">{lead.address}</p>
+    </div>
+    <div class="flex gap-2">
+      <ScoreBadge score={lead.actionability_score || 0} />
+      <StatusBadge status={lead.status} />
+      {lead.fit_type && <FitBadge fitType={lead.fit_type} />}
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="card bg-base-200">
+      <div class="card-body">
+        <h2 class="card-title">Project Details</h2>
+        <dl class="grid grid-cols-2 gap-2 text-sm">
+          <dt class="font-semibold">Type</dt>
+          <dd>{lead.project_type || '—'}</dd>
+          <dt class="font-semibold">Stage</dt>
+          <dd>{lead.stage || '—'}</dd>
+          <dt class="font-semibold">Est. Value</dt>
+          <dd>{lead.estimated_value || '—'}</dd>
+          <dt class="font-semibold">GC Assigned</dt>
+          <dd>{lead.gc_assigned ? lead.gc_name || 'Yes' : 'No'}</dd>
+          <dt class="font-semibold">Source</dt>
+          <dd>{lead.source_name || lead.source_type}</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="card bg-base-200">
+      <div class="card-body">
+        <h2 class="card-title">Why It Matters</h2>
+        <p>{lead.why_it_matters || 'No analysis available.'}</p>
+        {lead.action_item && (
+          <div class="mt-4">
+            <h3 class="font-semibold">Action Item</h3>
+            <p class="text-accent">{lead.action_item}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-6">
+    <h2 class="text-xl font-bold mb-4">Notes & Activity</h2>
+    <div class="timeline timeline-vertical">
+      {(lead.lead_notes || []).length === 0 && (
+        <p class="text-base-content/60">No notes yet.</p>
+      )}
+    </div>
+  </div>
+</Layout>

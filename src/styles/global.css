@@ -1,0 +1,16 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: bristlecone --default;
+}
+@plugin "daisyui/theme" {
+  name: "bristlecone";
+  --color-primary: #1E2761;
+  --color-secondary: #4A6FA5;
+  --color-accent: #F59E0B;
+  --color-neutral: #374151;
+  --color-base-100: #FFFFFF;
+  --color-info: #3B82F6;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+}

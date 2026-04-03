@@ -1,0 +1,129 @@
+{
+  "profileName": "Bristlecone Construction",
+  "profileSlug": "bristlecone",
+  "location": {
+    "primary": "Phoenix metro (all submarkets equally weighted)",
+    "secondary": ["Tucson metro (maybe)", "Flagstaff (maybe)"],
+    "state": "Arizona"
+  },
+  "company": {
+    "type": "General Contractor + Self-Perform Structural Concrete",
+    "size": "Regional, expanding",
+    "headquarters": "Scottsdale, AZ",
+    "markets": ["Colorado", "Arizona", "New Mexico"],
+    "differentiators": [
+      "Design-forward, technically demanding projects",
+      "Coordination, constructability thinking, early cost clarity",
+      "Self-perform structural concrete division",
+      "Thrives on messy/distressed/complex projects",
+      "New market entry — hungry for relationships and wins"
+    ],
+    "keyPeople": [
+      { "name": "Tom Keilty", "role": "Principal", "focus": "Phoenix market expansion" }
+    ],
+    "marketingContact": { "name": "Sebastian", "role": "Marketing / ActiveCampaign CRM" }
+  },
+  "projectFit": {
+    "strongFit": [
+      "Ground-up multifamily",
+      "Mixed-use urban development",
+      "Commercial office (Class A/B)",
+      "Hospitality (hotels, resorts)",
+      "Institutional (education, healthcare, government)",
+      "Complex repositioning / additions",
+      "Adaptive reuse",
+      "Distressed / foreclosed / 'hairy' projects needing rescue"
+    ],
+    "possibleFit": [
+      "Industrial / warehouse / distribution",
+      "Tenant improvement ($2M+)",
+      "Senior living / assisted living"
+    ],
+    "concreteScopeOnly": [
+      "ANY commercial project where a competitor GC is building",
+      "Structural concrete scope on projects Bristlecone didn't win as GC",
+      "Hard-bid concrete — 'chasing all day long'",
+      "Action: call the winning GC, not the developer"
+    ],
+    "notAFit": [
+      "Single-family residential (tract or custom)",
+      "Small projects under ~$2M (GC scope) or under ~$1M (concrete scope)",
+      "Horizontal infrastructure only",
+      "Specialty-only work (non-concrete MEP, roofing, etc.)"
+    ],
+    "deliveryMethods": {
+      "preferred": ["Negotiated", "Design-build", "CM-at-risk"],
+      "selective": "Hard-bid over ~$2M for GC scope",
+      "concrete": "Hard-bid structural concrete — all sizes $1M+"
+    },
+    "bestClients": "Private developers with repeat programs — large nationals or sharp boutique groups open to early collaboration. Especially where a project needs help getting 'unstuck' from cost or feasibility."
+  },
+  "scoringWeights": {
+    "actionability": 0.35,
+    "projectFit": 0.25,
+    "timing": 0.20,
+    "projectScale": 0.10,
+    "competitivePosition": 0.10
+  },
+  "scoringGuidance": {
+    "actionability": "Can Tom take a specific action? Parse his network for intros, make a phone call, send a LinkedIn message, submit quals? Score 9-10. 'The market is growing' with no specific action = score 3.",
+    "timing": "Sites going under contract or pre-planning = 10. Just entitled = 9. Permitted and bidding = 8. Under construction = 5 (concrete scope still viable, GC can still change). Completed = 1. Tom says: years before a project starts is fine.",
+    "projectFit": "Design-forward ground-up or complex adaptive reuse = 10. Distressed/foreclosed project needing rescue = 9. Small TI or single-family = 1. Concrete-scope-only on a large project = 7.",
+    "projectScale": "Projects $10M+ for GC scope score highest. $2-10M solid. Under $2M filter out for GC. Concrete scope: $1M+ threshold.",
+    "competitivePosition": "Project with no GC named = 9. Project with GC but Tom knows someone on the team = 7. Known developer's project = boost +2. Known architect's project = boost +2. Competitor GC won the job = 6 (concrete scope lead).",
+    "gcFieldNote": "GC field blank is a SIGNAL worth noting but does NOT dominate scoring. Tom: 'I don't care if there's a GC filled out or not.' GC assigned = concrete scope opportunity.",
+    "pursuitMatch": "Tom's process: network intro first, then phone, LinkedIn, email, text, quals package. Action items should match this flow — e.g., 'Check your network for intros to Fields Development' before 'Send quals to owner.'"
+  },
+  "targetDevelopers": [
+    "Empire Group (Aspirant)",
+    "WDP Partners",
+    "True North",
+    "NADG (North American Development Group)",
+    "CRG",
+    "Eran Fields / Fields Development",
+    "Campus Acquisitions",
+    "Sunbelt Holdings",
+    "Core Spaces",
+    "Landmark",
+    "Trammell Crow Residential (TCR)",
+    "Hines",
+    "Habitat Metro",
+    "Greystar / AvalonBay",
+    "Evergreen Devco",
+    "Marshall Urban Development"
+  ],
+  "targetArchitects": [],
+  "competitors": [
+    "AR Mays",
+    "Robert E. Porter Construction",
+    "Brinkmann",
+    "Wespac",
+    "CHASSE Building Team",
+    "Caliente",
+    "Big-D Construction"
+  ],
+  "clientAdvocates": "Tom has referral program active — names in his network. Tag referral leads with source.",
+  "emailSchedule": {
+    "agentRuns": "daily at 6 AM MST",
+    "websiteUpdates": "daily (after each agent run)",
+    "digestEmail": "weekly (Friday AM)",
+    "urgentAlerts": "same-day for items scoring 9+ with time-sensitive deadlines (optional)"
+  },
+  "emailRecipients": [
+    { "email": "tom@bristleconeconstruction.com", "name": "Tom Keilty" }
+  ],
+  "additionalRecipients": "Phase 2 — CEO gets KPI view, precon gets bid dates",
+  "kpiMetrics": {
+    "phase1": "Raw leads surfaced → qualified leads → pipeline stages (weekly in email)",
+    "phase2": "Full dashboard with estimated project start dates for cash flow forecasting",
+    "ceoNeeds": "Data-oriented: lead volume, pipeline value, stage progression, win rate"
+  },
+  "alertThreshold": 9,
+  "digestThreshold": 5,
+  "enrichmentFlags": true,
+  "prefilterExclusions": [
+    "Single-family residential",
+    "Horizontal infrastructure only",
+    "Projects under $1M"
+  ]
+}

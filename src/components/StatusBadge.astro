@@ -1,0 +1,24 @@
+---
+interface Props {
+  status: string
+}
+
+const { status } = Astro.props
+
+const statusColors: Record<string, string> = {
+  'new': 'badge-info',
+  'tracking': 'badge-warning',
+  'pursuing': 'badge-accent',
+  'won': 'badge-success',
+  'lost': 'badge-error',
+  'no-bid': 'badge-neutral',
+  'dismissed': 'badge-ghost',
+  'stale': 'badge-ghost',
+}
+
+const badgeClass = statusColors[status] || 'badge-neutral'
+---
+
+<span class:list={['badge', badgeClass]}>
+  {status}
+</span>

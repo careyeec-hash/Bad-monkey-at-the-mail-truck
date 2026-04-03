@@ -1,0 +1,20 @@
+---
+const currentPath = Astro.url.pathname
+---
+
+<div class="navbar bg-primary text-primary-content">
+  <div class="container mx-auto max-w-6xl">
+    <div class="flex-1">
+      <a href="/" class="btn btn-ghost text-xl normal-case">
+        Bad Monkey
+      </a>
+    </div>
+    <div class="flex-none">
+      <ul class="menu menu-horizontal px-1 gap-1">
+        <li><a href="/" class:list={[{ 'bg-primary-focus': currentPath === '/' }]}>Briefings</a></li>
+        <li><a href="/archive" class:list={[{ 'bg-primary-focus': currentPath === '/archive' }]}>Archive</a></li>
+        <li><a href="/leads" class:list={[{ 'bg-primary-focus': currentPath.startsWith('/leads') }]}>Leads</a></li>
+      </ul>
+    </div>
+  </div>
+</div>

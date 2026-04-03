@@ -1,0 +1,23 @@
+{
+  "name": "bad-monkey-agent",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Daily autonomous construction intelligence agent for Bad Monkey At The Mail Truck",
+  "main": "run.js",
+  "scripts": {
+    "start": "node run.js",
+    "test-ingest": "node -e \"import('./ingest.js').then(m => m.default())\"",
+    "test-prefilter": "node -e \"import('./prefilter.js').then(m => m.default([]))\"",
+    "test-evaluate": "node -e \"import('./evaluate.js').then(m => m.default([]))\""
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@supabase/supabase-js": "^2.101.1",
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.5.0",
+    "node-fetch": "^3.3.2",
+    "resend": "^4.5.1",
+    "rss-parser": "^3.13.0",
+    "uuid": "^11.1.0"
+  }
+}

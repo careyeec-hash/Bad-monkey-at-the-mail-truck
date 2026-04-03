@@ -1,0 +1,32 @@
+---
+import Layout from '../layouts/Layout.astro'
+---
+
+<Layout title="Today's Briefing">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-3xl font-bold">Today's Briefing</h1>
+    <a href="/leads/new" class="btn btn-primary">+ Add Lead</a>
+  </div>
+
+  <div class="alert alert-info mb-6">
+    <span>No briefings yet. The agent hasn't run its first daily scan.</span>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+    <div class="stat bg-base-200 rounded-box">
+      <div class="stat-title">Active Leads</div>
+      <div class="stat-value">0</div>
+      <div class="stat-desc">In pipeline</div>
+    </div>
+    <div class="stat bg-base-200 rounded-box">
+      <div class="stat-title">Hot This Week</div>
+      <div class="stat-value text-error">0</div>
+      <div class="stat-desc">Score 8+</div>
+    </div>
+    <div class="stat bg-base-200 rounded-box">
+      <div class="stat-title">Sources Active</div>
+      <div class="stat-value text-success">0</div>
+      <div class="stat-desc">of 18 configured</div>
+    </div>
+  </div>
+</Layout>

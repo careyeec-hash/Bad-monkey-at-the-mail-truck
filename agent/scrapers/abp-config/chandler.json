@@ -1,0 +1,23 @@
+{
+  "cityName": "City of Chandler",
+  "portalUrl": "",
+  "isAccela": true,
+  "searchParams": {
+    "dateRangeDays": 7,
+    "permitTypes": ["Commercial Building", "Multifamily", "Institutional"],
+    "statuses": ["Applied", "Issued", "In Review", "Approved"]
+  },
+  "selectors": {
+    "resultsTable": "",
+    "permitNumber": "",
+    "address": "",
+    "description": "",
+    "owner": "",
+    "contractor": "",
+    "valuation": "",
+    "nextPage": ""
+  },
+  "timeout": 60000,
+  "active": false,
+  "notes": "Verify Accela. Portal URL and selectors TBD."
+}

@@ -1,0 +1,26 @@
+---
+interface Props {
+  fitType: string
+}
+
+const { fitType } = Astro.props
+
+const fitColors: Record<string, string> = {
+  'gc-scope': 'badge-success',
+  'concrete-scope': 'badge-warning',
+  'both': 'badge-accent',
+}
+
+const labels: Record<string, string> = {
+  'gc-scope': 'GC Scope',
+  'concrete-scope': 'Concrete',
+  'both': 'GC + Concrete',
+}
+
+const badgeClass = fitColors[fitType] || 'badge-neutral'
+const label = labels[fitType] || fitType
+---
+
+<span class:list={['badge', badgeClass]}>
+  {label}
+</span>

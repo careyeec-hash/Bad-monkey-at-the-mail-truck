@@ -1,0 +1,51 @@
+---
+import Layout from '../../layouts/Layout.astro'
+---
+
+<Layout title="Lead Pipeline">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-3xl font-bold">Lead Pipeline</h1>
+    <a href="/leads/new" class="btn btn-primary">+ Add Lead</a>
+  </div>
+
+  <div class="flex gap-2 mb-4 flex-wrap">
+    <select class="select select-bordered select-sm" id="status-filter">
+      <option value="">All Statuses</option>
+      <option value="new">New</option>
+      <option value="tracking">Tracking</option>
+      <option value="pursuing">Pursuing</option>
+      <option value="won">Won</option>
+      <option value="lost">Lost</option>
+      <option value="no-bid">No-Bid</option>
+      <option value="dismissed">Dismissed</option>
+    </select>
+    <select class="select select-bordered select-sm" id="fit-filter">
+      <option value="">All Fit Types</option>
+      <option value="gc-scope">GC Scope</option>
+      <option value="concrete-scope">Concrete Scope</option>
+      <option value="both">Both</option>
+    </select>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="table table-zebra w-full">
+      <thead>
+        <tr>
+          <th>Score</th>
+          <th>Project</th>
+          <th>Type</th>
+          <th>Fit</th>
+          <th>Status</th>
+          <th>Action Item</th>
+        </tr>
+      </thead>
+      <tbody id="leads-table">
+        <tr>
+          <td colspan="6" class="text-center py-8 text-base-content/60">
+            No leads yet. Add one manually or wait for the agent's first run.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</Layout>

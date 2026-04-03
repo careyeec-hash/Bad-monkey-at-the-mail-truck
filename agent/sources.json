@@ -1,0 +1,226 @@
+{
+  "sources": [
+    {
+      "name": "City of Phoenix Permits (SHAPE PHX)",
+      "url": "https://shapephx.phoenix.gov",
+      "type": "abp",
+      "tier": 1,
+      "category": "permit",
+      "config": "phoenix-shapephx",
+      "active": false,
+      "notes": "SHAPE PHX (Salesforce-based) launches April 13, 2026 replacing PDD Online. Do NOT build scraper until after launch. Check for API/RSS/export options first.",
+      "lastSuccess": null,
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "SAM.gov Federal RFPs",
+      "url": "https://api.sam.gov/opportunities/v2/search",
+      "type": "api",
+      "tier": 1,
+      "category": "rfp",
+      "active": true,
+      "lastSuccess": "2026-04-03T03:16:50.484Z",
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Google News — AZ Construction Permits",
+      "url": "https://news.google.com/rss/search?q=%22arizona%22+%22construction%22+%22permit%22&hl=en-US&gl=US&ceid=US:en",
+      "type": "rss",
+      "tier": 2,
+      "category": "news",
+      "active": true,
+      "notes": "Catch-all Google News feed for AZ construction permit news. High noise — Haiku pre-filter handles it.",
+      "lastSuccess": null,
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Google News — Phoenix Development",
+      "url": "https://news.google.com/rss/search?q=%22phoenix%22+%22development%22+%28%22multifamily%22+OR+%22commercial%22+OR+%22construction%22%29&hl=en-US&gl=US&ceid=US:en",
+      "type": "rss",
+      "tier": 2,
+      "category": "news",
+      "active": true,
+      "notes": "Broad Phoenix development/construction news via Google News RSS.",
+      "lastSuccess": null,
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Google News — AZ General Contractor",
+      "url": "https://news.google.com/rss/search?q=%22arizona%22+%28%22general+contractor%22+OR+%22ground+breaking%22+OR+%22project+awarded%22%29&hl=en-US&gl=US&ceid=US:en",
+      "type": "rss",
+      "tier": 2,
+      "category": "news",
+      "active": true,
+      "notes": "GC awards, groundbreakings, project announcements in AZ.",
+      "lastSuccess": null,
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Bisnow Phoenix",
+      "url": "https://www.bisnow.com/rss-feed/phoenix",
+      "type": "rss",
+      "tier": 2,
+      "category": "news",
+      "active": true,
+      "lastSuccess": "2026-04-03T03:16:51.354Z",
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Engineering News-Record",
+      "url": "https://www.enr.com/rss/articles",
+      "type": "rss",
+      "tier": 2,
+      "category": "news",
+      "active": true,
+      "notes": "General feed — no SW-specific feed available (403). Pre-filter will drop non-AZ items.",
+      "lastSuccess": "2026-04-03T03:16:51.590Z",
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "GPEC (Greater Phoenix Economic Council)",
+      "url": "https://www.gpec.org/category/news/feed/",
+      "type": "rss",
+      "tier": 2,
+      "category": "economic",
+      "active": true,
+      "lastSuccess": "2026-04-03T03:16:51.826Z",
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Chamber of Southern Arizona (formerly TREO)",
+      "url": "https://thechambersoaz.com/feed/",
+      "type": "rss",
+      "tier": 2,
+      "category": "economic",
+      "active": true,
+      "notes": "TREO merged into Chamber of Southern Arizona. Covers Tucson/Southern AZ economic development.",
+      "lastSuccess": "2026-04-03T03:16:53.481Z",
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Phoenix Business Journal",
+      "url": "https://feeds.bizjournals.com/bizj_phoenix",
+      "type": "rss",
+      "tier": 2,
+      "category": "news",
+      "active": false,
+      "notes": "RSS returns 403 — paywall/restricted. May need scrape or newsletter approach.",
+      "lastSuccess": null,
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "AZ Big Media - Real Estate",
+      "url": "https://azbigmedia.com/real-estate/feed/",
+      "type": "rss",
+      "tier": 2,
+      "category": "news",
+      "active": false,
+      "notes": "Feed returns HTML, not RSS. Disabled until feed is fixed or replaced with scraper.",
+      "lastSuccess": null,
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "AZRE Magazine",
+      "url": "https://azremagazine.com/feed/",
+      "type": "rss",
+      "tier": 2,
+      "category": "news",
+      "active": false,
+      "notes": "SSL certificate mismatch. Disabled.",
+      "lastSuccess": null,
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Arizona Republic Business",
+      "url": "https://www.azcentral.com/business/rss",
+      "type": "rss",
+      "tier": 2,
+      "category": "news",
+      "active": false,
+      "notes": "RSS discontinued. App/newsletter only.",
+      "lastSuccess": null,
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Arizona Commerce Authority",
+      "url": "https://www.azcommerce.com/news/feed/",
+      "type": "rss",
+      "tier": 2,
+      "category": "economic",
+      "active": false,
+      "notes": "No RSS feed available. Not a WordPress site.",
+      "lastSuccess": null,
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Scottsdale Accela Permits",
+      "type": "abp",
+      "tier": 3,
+      "category": "permit",
+      "config": "scottsdale",
+      "active": true,
+      "lastSuccess": "2026-04-03T03:16:53.493Z",
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Maricopa County Accela Permits",
+      "type": "abp",
+      "tier": 3,
+      "category": "permit",
+      "config": "maricopa-county",
+      "active": false,
+      "lastSuccess": null,
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Mesa Accela Permits",
+      "type": "abp",
+      "tier": 3,
+      "category": "permit",
+      "config": "mesa",
+      "active": false,
+      "lastSuccess": null,
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Tempe Accela Permits",
+      "type": "abp",
+      "tier": 3,
+      "category": "permit",
+      "config": "tempe",
+      "active": false,
+      "lastSuccess": null,
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Chandler Accela Permits",
+      "type": "abp",
+      "tier": 3,
+      "category": "permit",
+      "config": "chandler",
+      "active": false,
+      "lastSuccess": null,
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Surprise Accela Permits",
+      "type": "abp",
+      "tier": 3,
+      "category": "permit",
+      "config": "surprise",
+      "active": false,
+      "lastSuccess": null,
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Goodyear Accela Permits",
+      "type": "abp",
+      "tier": 3,
+      "category": "permit",
+      "config": "goodyear",
+      "active": false,
+      "lastSuccess": null,
+      "consecutiveFailures": 0
+    }
+  ]
+}
