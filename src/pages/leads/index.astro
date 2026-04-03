@@ -1,5 +1,15 @@
 ---
 import Layout from '../../layouts/Layout.astro'
+import ScoreBadge from '../../components/ScoreBadge.astro'
+import StatusBadge from '../../components/StatusBadge.astro'
+import FitBadge from '../../components/FitBadge.astro'
+import { supabase } from '../../lib/supabase.js'
+
+const { data: leads } = await supabase
+  .from('leads')
+  .select('*')
+  .order('actionability_score', { ascending: false })
+  .limit(100)
 ---
 
 <Layout title="Lead Pipeline">
@@ -11,19 +21,28 @@ import Layout from '../../layouts/Layout.astro'
     </a>
   </div>
 
-  <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
-    <button class="btn-ghost-custom" style="background: #F3F4F6; color: #111827; font-size: 13px;">All</button>
-    <button class="btn-ghost-custom" style="font-size: 13px;">New</button>
-    <button class="btn-ghost-custom" style="font-size: 13px;">Tracking</button>
-    <button class="btn-ghost-custom" style="font-size: 13px;">Pursuing</button>
-    <button class="btn-ghost-custom" style="font-size: 13px;">Won</button>
-  </div>
-
-  <div style="display: flex; flex-direction: column; gap: 8px;">
+  {(leads && leads.length > 0) ? (
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      {leads.map((lead: any) => (
+        <a href={`/leads/${lead.id}`} class="lead-row">
+          <ScoreBadge score={lead.actionability_score || 0} />
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 15px; font-weight: 600; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{lead.project_name}</div>
+            <div style="font-size: 13px; color: #9CA3AF; margin-top: 2px;">{lead.address || ''}</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+            {lead.project_type && <span style="font-size: 12px; color: #6B7280; background: #F3F4F6; padding: 2px 8px; border-radius: 4px;">{lead.project_type}</span>}
+            {lead.fit_type && <FitBadge fitType={lead.fit_type} />}
+            <StatusBadge status={lead.status} />
+          </div>
+        </a>
+      ))}
+    </div>
+  ) : (
     <div class="empty-state card-surface">
       <p style="font-size: 15px; color: #6B7280;">No leads yet.</p>
       <p style="font-size: 13px; color: #9CA3AF; margin-top: 4px;">Add one manually or wait for the agent's first run.</p>
       <a href="/leads/new" class="btn-primary-custom" style="margin-top: 16px;">Add Your First Lead</a>
     </div>
-  </div>
+  )}
 </Layout>

@@ -1,5 +1,42 @@
 ---
 import Layout from '../layouts/Layout.astro'
+import ScoreBadge from '../components/ScoreBadge.astro'
+import StatusBadge from '../components/StatusBadge.astro'
+import FitBadge from '../components/FitBadge.astro'
+import { supabase } from '../lib/supabase.js'
+
+// Fetch live stats
+const { count: activeCount } = await supabase
+  .from('leads')
+  .select('*', { count: 'exact', head: true })
+  .in('status', ['new', 'tracking', 'pursuing'])
+
+const monday = new Date()
+monday.setDate(monday.getDate() - monday.getDay() + 1)
+monday.setHours(0, 0, 0, 0)
+
+const { count: hotCount } = await supabase
+  .from('leads')
+  .select('*', { count: 'exact', head: true })
+  .gte('actionability_score', 8)
+  .gte('created_at', monday.toISOString())
+
+// Fetch recent leads
+const { data: recentLeads } = await supabase
+  .from('leads')
+  .select('*')
+  .order('created_at', { ascending: false })
+  .limit(5)
+
+// Fetch latest agent run
+const { data: lastRun } = await supabase
+  .from('agent_runs')
+  .select('*')
+  .order('run_date', { ascending: false })
+  .limit(1)
+
+const run = lastRun?.[0]
+const sourcesActive = run?.sources_checked || 0
 ---
 
 <Layout title="Today's Briefing">
@@ -13,24 +50,56 @@ import Layout from '../layouts/Layout.astro'
 
   <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;">
     <div class="stat-card">
-      <div class="stat-value" style="color: #111827;">0</div>
+      <div class="stat-value" style="color: #111827;">{activeCount || 0}</div>
       <div class="stat-label">Active Leads</div>
     </div>
     <div class="stat-card">
-      <div class="stat-value" style="color: #DC2626;">0</div>
+      <div class="stat-value" style="color: #DC2626;">{hotCount || 0}</div>
       <div class="stat-label">Hot This Week</div>
     </div>
     <div class="stat-card">
-      <div class="stat-value" style="color: #10B981;">8</div>
-      <div class="stat-label">Sources Active</div>
+      <div class="stat-value" style="color: #10B981;">{sourcesActive}</div>
+      <div class="stat-label">Sources Checked</div>
     </div>
   </div>
 
-  <div class="card-surface" style="padding: 24px;">
-    <h2 style="font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 16px;">Latest Briefing</h2>
-    <div class="empty-state">
-      <p style="font-size: 15px; color: #6B7280;">No briefings yet.</p>
-      <p style="font-size: 13px; color: #9CA3AF; margin-top: 4px;">The agent hasn't run its first daily scan. Briefings will appear here after each run.</p>
+  {(recentLeads && recentLeads.length > 0) ? (
+    <div>
+      <h2 style="font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 16px;">Recent Leads</h2>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        {recentLeads.map((lead: any) => (
+          <a href={`/leads/${lead.id}`} class="lead-row">
+            <ScoreBadge score={lead.actionability_score || 0} />
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-size: 14px; font-weight: 600; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{lead.project_name}</div>
+              <div style="font-size: 13px; color: #9CA3AF; margin-top: 2px;">{lead.address || lead.source_name || ''}</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+              {lead.fit_type && <FitBadge fitType={lead.fit_type} />}
+              <StatusBadge status={lead.status} />
+            </div>
+          </a>
+        ))}
+      </div>
+      <div style="margin-top: 12px;">
+        <a href="/leads" class="btn-ghost-custom" style="font-size: 13px;">View all leads →</a>
+      </div>
     </div>
-  </div>
+  ) : (
+    <div class="card-surface" style="padding: 24px;">
+      <h2 style="font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 16px;">Latest Briefing</h2>
+      <div class="empty-state">
+        <p style="font-size: 15px; color: #6B7280;">No briefings yet.</p>
+        <p style="font-size: 13px; color: #9CA3AF; margin-top: 4px;">The agent hasn't run its first daily scan. Briefings will appear here after each run.</p>
+      </div>
+    </div>
+  )}
+
+  {run && (
+    <div style="margin-top: 24px; padding: 16px 20px; background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 10px;">
+      <div style="font-size: 13px; color: #9CA3AF;">
+        Last agent run: {new Date(run.run_date).toLocaleString()} · {run.items_ingested} ingested · {run.items_evaluated} evaluated · {run.leads_created} new leads
+      </div>
+    </div>
+  )}
 </Layout>
