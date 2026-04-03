@@ -19,7 +19,7 @@
       "tier": 1,
       "category": "rfp",
       "active": true,
-      "lastSuccess": "2026-04-03T03:16:50.484Z",
+      "lastSuccess": "2026-04-03T04:17:01.760Z",
       "consecutiveFailures": 0
     },
     {
@@ -30,7 +30,7 @@
       "category": "news",
       "active": true,
       "notes": "Catch-all Google News feed for AZ construction permit news. High noise — Haiku pre-filter handles it.",
-      "lastSuccess": null,
+      "lastSuccess": "2026-04-03T04:17:01.913Z",
       "consecutiveFailures": 0
     },
     {
@@ -41,7 +41,7 @@
       "category": "news",
       "active": true,
       "notes": "Broad Phoenix development/construction news via Google News RSS.",
-      "lastSuccess": null,
+      "lastSuccess": "2026-04-03T04:17:01.975Z",
       "consecutiveFailures": 0
     },
     {
@@ -52,7 +52,7 @@
       "category": "news",
       "active": true,
       "notes": "GC awards, groundbreakings, project announcements in AZ.",
-      "lastSuccess": null,
+      "lastSuccess": "2026-04-03T04:17:02.010Z",
       "consecutiveFailures": 0
     },
     {
@@ -62,7 +62,7 @@
       "tier": 2,
       "category": "news",
       "active": true,
-      "lastSuccess": "2026-04-03T03:16:51.354Z",
+      "lastSuccess": "2026-04-03T04:17:02.875Z",
       "consecutiveFailures": 0
     },
     {
@@ -73,7 +73,7 @@
       "category": "news",
       "active": true,
       "notes": "General feed — no SW-specific feed available (403). Pre-filter will drop non-AZ items.",
-      "lastSuccess": "2026-04-03T03:16:51.590Z",
+      "lastSuccess": "2026-04-03T04:17:03.108Z",
       "consecutiveFailures": 0
     },
     {
@@ -83,7 +83,7 @@
       "tier": 2,
       "category": "economic",
       "active": true,
-      "lastSuccess": "2026-04-03T03:16:51.826Z",
+      "lastSuccess": "2026-04-03T04:17:03.350Z",
       "consecutiveFailures": 0
     },
     {
@@ -94,7 +94,7 @@
       "category": "economic",
       "active": true,
       "notes": "TREO merged into Chamber of Southern Arizona. Covers Tucson/Southern AZ economic development.",
-      "lastSuccess": "2026-04-03T03:16:53.481Z",
+      "lastSuccess": "2026-04-03T04:17:04.425Z",
       "consecutiveFailures": 0
     },
     {
@@ -159,7 +159,7 @@
       "category": "permit",
       "config": "scottsdale",
       "active": true,
-      "lastSuccess": "2026-04-03T03:16:53.493Z",
+      "lastSuccess": "2026-04-03T04:17:04.441Z",
       "consecutiveFailures": 0
     },
     {
