@@ -9,9 +9,9 @@ export async function POST({ request }) {
     return new Response(JSON.stringify({ error: 'Lead data required' }), { status: 400 })
   }
 
-  const apiKey = import.meta.env.ANTHROPIC_API_KEY
+  const apiKey = import.meta.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured' }), { status: 500 })
+    return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured. Set it in Vercel Environment Variables.' }), { status: 500 })
   }
 
   const targetPerson = contactName
