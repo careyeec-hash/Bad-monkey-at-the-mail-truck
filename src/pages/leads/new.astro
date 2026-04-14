@@ -61,6 +61,45 @@ import Layout from '../../layouts/Layout.astro'
       </div>
     </div>
 
+    <!-- Primary Contact -->
+    <div style="margin-top: 8px; margin-bottom: 20px; padding-top: 20px; border-top: 1px solid #E5E7EB;">
+      <h3 style="font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 14px;">Primary Contact</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div>
+          <label class="form-label" for="contact_name">Contact Name</label>
+          <input type="text" id="contact_name" name="contact_name" class="form-input" placeholder="Jane Smith" />
+        </div>
+        <div>
+          <label class="form-label" for="contact_role">Role</label>
+          <select id="contact_role" name="contact_role" class="form-input">
+            <option value="">Select...</option>
+            <option value="Developer">Developer</option>
+            <option value="Owner">Owner / Owner's Rep</option>
+            <option value="Architect">Architect</option>
+            <option value="GC">General Contractor</option>
+            <option value="Engineer">Engineer</option>
+            <option value="Subcontractor">Subcontractor</option>
+            <option value="Broker">Broker</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div>
+          <label class="form-label" for="contact_company">Organization</label>
+          <input type="text" id="contact_company" name="contact_company" class="form-input" placeholder="Company name" />
+        </div>
+        <div>
+          <label class="form-label" for="contact_phone">Phone</label>
+          <input type="tel" id="contact_phone" name="contact_phone" class="form-input" placeholder="480-555-1234" />
+        </div>
+      </div>
+      <div style="margin-bottom: 16px;">
+        <label class="form-label" for="contact_email">Email</label>
+        <input type="email" id="contact_email" name="contact_email" class="form-input" placeholder="jane@example.com" style="max-width: 308px;" />
+      </div>
+    </div>
+
     <div style="margin-bottom: 24px;">
       <label class="form-label" for="notes">Notes</label>
       <textarea id="notes" name="notes" class="form-input" rows="3" placeholder="What do you know about this project?" style="resize: vertical;"></textarea>
@@ -118,7 +157,23 @@ import Layout from '../../layouts/Layout.astro'
       if (!res.ok) throw new Error(data.error || 'Failed to create lead')
 
       successMsg.style.display = 'block'
-      form.reset()
+
+      // Add contact if name provided
+      const contactName = form.contact_name?.value?.trim()
+      if (contactName && data.id) {
+        await fetch(`/api/leads/${data.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ _addContact: {
+            lead_id: data.id,
+            name: contactName,
+            role: form.contact_role?.value || null,
+            company: form.contact_company?.value?.trim() || null,
+            phone: form.contact_phone?.value?.trim() || null,
+            email: form.contact_email?.value?.trim() || null,
+          }})
+        })
+      }
 
       // Also add the note if provided
       const notes = form.notes?.value?.trim()
@@ -129,6 +184,8 @@ import Layout from '../../layouts/Layout.astro'
           body: JSON.stringify({ _addNote: { author: 'Tom Keilty', text: notes } })
         })
       }
+
+      form.reset()
     } catch (err) {
       errorMsg.textContent = err.message
       errorMsg.style.display = 'block'
