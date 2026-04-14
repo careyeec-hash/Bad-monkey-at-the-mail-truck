@@ -1,8 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro'
-import ScoreBadge from '../components/ScoreBadge.astro'
-import StatusBadge from '../components/StatusBadge.astro'
-import FitBadge from '../components/FitBadge.astro'
+import LeadRow from '../components/LeadRow.astro'
 import { supabase } from '../lib/supabase.js'
 
 // Fetch live stats
@@ -21,12 +19,35 @@ const { count: hotCount } = await supabase
   .gte('actionability_score', 8)
   .gte('created_at', monday.toISOString())
 
-// Fetch recent leads
-const { data: recentLeads } = await supabase
+// Fetch leads for intent buckets (open pursuits only)
+const { data: openLeads } = await supabase
   .from('leads')
   .select('*')
-  .order('created_at', { ascending: false })
-  .limit(5)
+  .in('status', ['new', 'tracking', 'pursuing'])
+  .order('actionability_score', { ascending: false })
+  .limit(100)
+
+const all = openLeads || []
+
+// Hot: score >= 8 AND (GC open OR late stage) — pursue now
+const hotLeads = all.filter((l: any) => {
+  const s = (l.stage || '').toLowerCase()
+  return (l.actionability_score || 0) >= 8 && (!l.gc_assigned || s.includes('bid') || s.includes('permit'))
+}).slice(0, 8)
+
+// Early Signals: score >= 6, planning/entitled — influence window
+const hotIds = new Set(hotLeads.map((l: any) => l.id))
+const earlyLeads = all.filter((l: any) => {
+  if (hotIds.has(l.id)) return false
+  const s = (l.stage || '').toLowerCase()
+  return (l.actionability_score || 0) >= 6 && (s.includes('plan') || s.includes('entitle') || s.includes('design') || !s)
+}).slice(0, 8)
+
+// Watch: everything else with a score >= 5
+const usedIds = new Set([...hotLeads, ...earlyLeads].map((l: any) => l.id))
+const watchLeads = all.filter((l: any) => !usedIds.has(l.id) && (l.actionability_score || 0) >= 5).slice(0, 6)
+
+const hasAny = hotLeads.length + earlyLeads.length + watchLeads.length > 0
 
 // Fetch latest agent run
 const { data: lastRun } = await supabase
@@ -40,12 +61,17 @@ const sourcesActive = run?.sources_checked || 0
 ---
 
 <Layout title="Today's Briefing">
-  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px;">
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
     <h1 class="text-primary-heading">Today's Briefing</h1>
     <a href="/leads/new" class="btn-primary-custom">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
       Add Lead
     </a>
+  </div>
+
+  <!-- Quick search -->
+  <div style="margin-bottom: 24px;">
+    <input type="text" id="dash-search" class="form-input" placeholder="Search leads..." style="max-width: 360px;" />
   </div>
 
   <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;">
@@ -63,25 +89,48 @@ const sourcesActive = run?.sources_checked || 0
     </div>
   </div>
 
-  {(recentLeads && recentLeads.length > 0) ? (
-    <div>
-      <h2 style="font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 16px;">Recent Leads</h2>
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        {recentLeads.map((lead: any) => (
-          <a href={`/leads/${lead.id}`} class="lead-row">
-            <ScoreBadge score={lead.actionability_score || 0} />
-            <div style="flex: 1; min-width: 0;">
-              <div style="font-size: 14px; font-weight: 600; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{lead.project_name}</div>
-              <div style="font-size: 13px; color: #9CA3AF; margin-top: 2px;">{lead.address || lead.source_name || ''}</div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
-              {lead.fit_type && <FitBadge fitType={lead.fit_type} />}
-              <StatusBadge status={lead.status} />
-            </div>
-          </a>
-        ))}
-      </div>
-      <div style="margin-top: 12px;">
+  {hasAny ? (
+    <div style="display: flex; flex-direction: column; gap: 28px;">
+      {hotLeads.length > 0 && (
+        <section>
+          <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px;">
+            <h2 style="font-size: 16px; font-weight: 700; color: #111827;">Hot Leads</h2>
+            <span style="font-size: 12px; color: #DC2626; font-weight: 600;">· pursue now</span>
+            <span style="font-size: 12px; color: #9CA3AF;">({hotLeads.length})</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            {hotLeads.map((lead: any) => <LeadRow lead={lead} />)}
+          </div>
+        </section>
+      )}
+
+      {earlyLeads.length > 0 && (
+        <section>
+          <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px;">
+            <h2 style="font-size: 16px; font-weight: 700; color: #111827;">Early Signals</h2>
+            <span style="font-size: 12px; color: #B45309; font-weight: 600;">· influence window</span>
+            <span style="font-size: 12px; color: #9CA3AF;">({earlyLeads.length})</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            {earlyLeads.map((lead: any) => <LeadRow lead={lead} />)}
+          </div>
+        </section>
+      )}
+
+      {watchLeads.length > 0 && (
+        <section>
+          <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px;">
+            <h2 style="font-size: 16px; font-weight: 700; color: #111827;">Watch List</h2>
+            <span style="font-size: 12px; color: #6B7280; font-weight: 600;">· monitoring</span>
+            <span style="font-size: 12px; color: #9CA3AF;">({watchLeads.length})</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            {watchLeads.map((lead: any) => <LeadRow lead={lead} />)}
+          </div>
+        </section>
+      )}
+
+      <div>
         <a href="/leads" class="btn-ghost-custom" style="font-size: 13px;">View all leads →</a>
       </div>
     </div>
@@ -103,3 +152,18 @@ const sourcesActive = run?.sources_checked || 0
     </div>
   )}
 </Layout>
+
+<script>
+  const dashSearch = document.getElementById('dash-search')
+  dashSearch?.addEventListener('input', () => {
+    const q = (dashSearch as HTMLInputElement).value.toLowerCase().trim()
+    document.querySelectorAll('.lead-row').forEach(row => {
+      const el = row as HTMLElement
+      if (!q || (el.dataset.search || '').includes(q)) {
+        el.style.display = 'flex'
+      } else {
+        el.style.display = 'none'
+      }
+    })
+  })
+</script>

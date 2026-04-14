@@ -40,6 +40,28 @@ export async function PUT({ params, request }) {
     })
   }
 
+  // Handle special _addContact action
+  if (body._addContact) {
+    const { lead_id, name, role, company, phone, email, notes } = body._addContact
+    const { error } = await supabase.from('lead_contacts').insert({
+      lead_id: lead_id || id,
+      name,
+      role,
+      company,
+      phone,
+      email,
+      notes
+    })
+
+    if (error) {
+      return new Response(JSON.stringify({ error: error.message }), { status: 400 })
+    }
+
+    return new Response(JSON.stringify({ ok: true }), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+
   // Regular lead update
   const { data, error } = await supabase
     .from('leads')

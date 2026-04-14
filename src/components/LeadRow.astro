@@ -1,0 +1,81 @@
+---
+import ScoreBadge from './ScoreBadge.astro'
+import StatusBadge from './StatusBadge.astro'
+import FitBadge from './FitBadge.astro'
+import SectorBadge from './SectorBadge.astro'
+
+interface Props {
+  lead: any
+}
+
+const { lead } = Astro.props
+
+let sourceHost = ''
+try { if (lead.source_url) sourceHost = new URL(lead.source_url).hostname.replace(/^www\./, '') } catch {}
+
+const value = lead.estimated_value && String(lead.estimated_value).trim()
+const stage = lead.stage && String(lead.stage).trim()
+const gcLabel = lead.gc_assigned
+  ? (lead.gc_name ? `GC: ${lead.gc_name}` : 'GC: assigned')
+  : 'GC: open'
+const gcOpen = !lead.gc_assigned
+const why = lead.why_it_matters && String(lead.why_it_matters).trim()
+const score = lead.actionability_score || 0
+const sector = (lead.project_type || '').toLowerCase().trim()
+const searchText = [lead.project_name, lead.address, lead.source_name, lead.gc_name, lead.project_type].filter(Boolean).join(' ').toLowerCase()
+
+// Source date — prefer briefing_date, fall back to created_at
+const sourceDate = lead.briefing_date || lead.created_at
+const sourceDateLabel = sourceDate ? new Date(sourceDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null
+---
+
+<a href={`/leads/${lead.id}`} class="lead-row" data-status={lead.status} data-score={score} data-sector={sector} data-search={searchText}>
+  <ScoreBadge score={score} />
+
+  <div style="flex: 1; min-width: 0;">
+    <div style="font-size: 14px; font-weight: 600; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+      {lead.project_name}
+    </div>
+    <div style="font-size: 12px; color: #6B7280; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+      {lead.address || lead.source_name || '—'}
+    </div>
+    <div style="font-size: 12px; color: #4B5563; margin-top: 4px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center;">
+      <span style={`color: ${value ? '#111827' : '#9CA3AF'}; font-weight: ${value ? 600 : 400};`}>
+        {value || 'value: —'}
+      </span>
+      <span style="color: #D1D5DB;">·</span>
+      <span style={`color: ${stage ? '#111827' : '#9CA3AF'};`}>
+        {stage || 'stage: —'}
+      </span>
+      <span style="color: #D1D5DB;">·</span>
+      <span style={`color: ${gcOpen ? '#B45309' : '#374151'}; font-weight: ${gcOpen ? 600 : 400};`}>
+        {gcLabel}
+      </span>
+      {sourceDateLabel && (
+        <>
+          <span style="color: #D1D5DB;">·</span>
+          <span style="color: #9CA3AF;">{sourceDateLabel}</span>
+        </>
+      )}
+    </div>
+    {why && (
+      <div style="font-size: 12px; color: #6B7280; margin-top: 4px; font-style: italic; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;">
+        {why}
+      </div>
+    )}
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+    {lead.project_type && <SectorBadge sector={lead.project_type} />}
+    {lead.source_url && (
+      <button
+        type="button"
+        onclick={`event.preventDefault(); event.stopPropagation(); window.open('${lead.source_url}', '_blank', 'noopener');`}
+        style="font-size: 11px; color: #4A6FA5; background: #EEF2FF; border: 1px solid #C7D2FE; padding: 2px 8px; border-radius: 999px; cursor: pointer; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+        title={lead.source_url}
+      >↗ {sourceHost || 'source'}</button>
+    )}
+    {lead.fit_type && <FitBadge fitType={lead.fit_type} />}
+    <StatusBadge status={lead.status} />
+  </div>
+</a>

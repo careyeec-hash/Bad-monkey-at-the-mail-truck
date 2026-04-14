@@ -1,0 +1,27 @@
+---
+interface Props {
+  sector: string
+}
+
+const { sector } = Astro.props
+
+// Color-coded by market sector. Aligned to Bristlecone's strongFit + possibleFit lists.
+// Multifamily and mixed-use get the warmest colors since they're the sweet spot.
+const styles: Record<string, { bg: string; fg: string; border: string; label: string }> = {
+  'multifamily':    { bg: '#FEF3C7', fg: '#92400E', border: '#FDE68A', label: 'Multifamily' },
+  'mixed-use':      { bg: '#FCE7F3', fg: '#9D174D', border: '#FBCFE8', label: 'Mixed-Use' },
+  'hospitality':    { bg: '#FFE4E6', fg: '#9F1239', border: '#FECDD3', label: 'Hospitality' },
+  'institutional':  { bg: '#DBEAFE', fg: '#1E40AF', border: '#BFDBFE', label: 'Institutional' },
+  'commercial':     { bg: '#E0E7FF', fg: '#3730A3', border: '#C7D2FE', label: 'Commercial' },
+  'industrial':     { bg: '#F3F4F6', fg: '#374151', border: '#D1D5DB', label: 'Industrial' },
+  'infrastructure': { bg: '#ECFDF5', fg: '#065F46', border: '#A7F3D0', label: 'Infrastructure' },
+  'unknown':        { bg: '#F9FAFB', fg: '#6B7280', border: '#E5E7EB', label: 'Sector ?' },
+}
+
+const key = (sector || 'unknown').toLowerCase().trim()
+const s = styles[key] || styles['unknown']
+---
+
+<span style={`font-size: 11px; font-weight: 600; color: ${s.fg}; background: ${s.bg}; border: 1px solid ${s.border}; padding: 2px 8px; border-radius: 999px; white-space: nowrap;`}>
+  {s.label}
+</span>

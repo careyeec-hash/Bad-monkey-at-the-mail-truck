@@ -1,8 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro'
-import ScoreBadge from '../../components/ScoreBadge.astro'
-import StatusBadge from '../../components/StatusBadge.astro'
-import FitBadge from '../../components/FitBadge.astro'
+import LeadRow from '../../components/LeadRow.astro'
 import { supabase } from '../../lib/supabase.js'
 
 const { data: leads } = await supabase
@@ -10,6 +8,9 @@ const { data: leads } = await supabase
   .select('*')
   .order('actionability_score', { ascending: false })
   .limit(200)
+
+// Collect unique sectors for the dropdown
+const sectors = [...new Set((leads || []).map((l: any) => l.project_type).filter(Boolean))].sort()
 ---
 
 <Layout title="Lead Pipeline">
@@ -21,32 +22,63 @@ const { data: leads } = await supabase
     </a>
   </div>
 
-  <!-- Filters -->
-  <div style="display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap;" id="filter-bar">
-    <button class="filter-btn active" data-filter="all">All ({leads?.length || 0})</button>
-    <button class="filter-btn" data-filter="new">New</button>
-    <button class="filter-btn" data-filter="tracking">Tracking</button>
-    <button class="filter-btn" data-filter="pursuing">Pursuing</button>
-    <button class="filter-btn" data-filter="won">Won</button>
-    <button class="filter-btn" data-filter="lost">Lost</button>
+  <!-- Search -->
+  <div style="margin-bottom: 16px;">
+    <input type="text" id="search-input" class="form-input" placeholder="Search projects, addresses, GCs..." style="max-width: 400px;" />
   </div>
+
+  <!-- Filter rows -->
+  <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+    <!-- Status filters -->
+    <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+      <span style="font-size: 12px; color: #9CA3AF; font-weight: 500; min-width: 50px;">Status</span>
+      <div style="display: flex; gap: 6px; flex-wrap: wrap;" id="status-bar">
+        <button class="filter-btn active" data-filter="all">All <span class="filter-count" data-count-for="all">{leads?.length || 0}</span></button>
+        <button class="filter-btn" data-filter="new">New</button>
+        <button class="filter-btn" data-filter="tracking">Tracking</button>
+        <button class="filter-btn" data-filter="pursuing">Pursuing</button>
+        <button class="filter-btn" data-filter="won">Won</button>
+        <button class="filter-btn" data-filter="lost">Lost</button>
+        <button class="filter-btn" data-filter="dismissed">Dismissed</button>
+      </div>
+    </div>
+
+    <!-- Score + Sector + Sort row -->
+    <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+      <span style="font-size: 12px; color: #9CA3AF; font-weight: 500; min-width: 50px;">Score</span>
+      <div style="display: flex; gap: 6px; flex-wrap: wrap;" id="score-bar">
+        <button class="filter-btn score-btn active" data-score-filter="all">All</button>
+        <button class="filter-btn score-btn" data-score-filter="hot" style="--active-bg: #DC2626;">🔥 8+</button>
+        <button class="filter-btn score-btn" data-score-filter="warm" style="--active-bg: #D97706;">6–7</button>
+        <button class="filter-btn score-btn" data-score-filter="watch" style="--active-bg: #2563EB;">5</button>
+        <button class="filter-btn score-btn" data-score-filter="low" style="--active-bg: #6B7280;">&lt;5</button>
+      </div>
+
+      <span style="color: #E5E7EB; margin: 0 4px;">|</span>
+
+      <select id="sector-filter" class="filter-select">
+        <option value="all">All sectors</option>
+        {sectors.map((s: string) => (
+          <option value={s.toLowerCase()}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+        ))}
+      </select>
+
+      <select id="sort-select" class="filter-select">
+        <option value="score-desc">Score ↓</option>
+        <option value="score-asc">Score ↑</option>
+        <option value="date-desc">Newest first</option>
+        <option value="date-asc">Oldest first</option>
+        <option value="name-asc">Name A–Z</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Results count -->
+  <div style="font-size: 13px; color: #9CA3AF; margin-bottom: 12px;" id="results-count"></div>
 
   {(leads && leads.length > 0) ? (
     <div style="display: flex; flex-direction: column; gap: 8px;" id="leads-list">
-      {leads.map((lead: any) => (
-        <a href={`/leads/${lead.id}`} class="lead-row" data-status={lead.status}>
-          <ScoreBadge score={lead.actionability_score || 0} />
-          <div style="flex: 1; min-width: 0;">
-            <div style="font-size: 14px; font-weight: 600; color: #111827; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;">{lead.project_name}</div>
-            <div style="font-size: 13px; color: #9CA3AF; margin-top: 2px;">{lead.address || ''}</div>
-          </div>
-          <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
-            {lead.project_type && <span style="font-size: 12px; color: #6B7280; background: #F3F4F6; padding: 2px 8px; border-radius: 4px;">{lead.project_type}</span>}
-            {lead.fit_type && <FitBadge fitType={lead.fit_type} />}
-            <StatusBadge status={lead.status} />
-          </div>
-        </a>
-      ))}
+      {leads.map((lead: any) => <LeadRow lead={lead} />)}
     </div>
   ) : (
     <div class="empty-state card-surface">
@@ -71,22 +103,127 @@ const { data: leads } = await supabase
   }
   .filter-btn:hover { background: #F3F4F6; color: #111827; }
   .filter-btn.active { background: #1E2761; color: white; border-color: #1E2761; }
+  .filter-count {
+    font-size: 11px;
+    opacity: 0.7;
+    margin-left: 2px;
+  }
+  .filter-select {
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid #D1D5DB;
+    background: white;
+    cursor: pointer;
+    color: #374151;
+  }
+  .filter-select:focus {
+    outline: none;
+    border-color: #1E2761;
+  }
 </style>
 
 <script>
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const filter = btn.dataset.filter
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'))
-      btn.classList.add('active')
+  const rows = Array.from(document.querySelectorAll('.lead-row'))
+  const searchInput = document.getElementById('search-input')
+  const resultsCount = document.getElementById('results-count')
+  let activeStatus = 'all'
+  let activeScore = 'all'
 
-      document.querySelectorAll('.lead-row').forEach(row => {
-        if (filter === 'all' || row.dataset.status === filter) {
-          row.style.display = 'flex'
-        } else {
-          row.style.display = 'none'
-        }
-      })
+  function getActiveFilters() {
+    const search = (searchInput?.value || '').toLowerCase().trim()
+    const sector = (document.getElementById('sector-filter') as HTMLSelectElement)?.value || 'all'
+    return { search, sector }
+  }
+
+  function scoreMatch(scoreStr: string, filter: string): boolean {
+    const score = parseInt(scoreStr) || 0
+    if (filter === 'all') return true
+    if (filter === 'hot') return score >= 8
+    if (filter === 'warm') return score >= 6 && score <= 7
+    if (filter === 'watch') return score === 5
+    if (filter === 'low') return score < 5
+    return true
+  }
+
+  function applyFilters() {
+    const { search, sector } = getActiveFilters()
+    let visible = 0
+
+    rows.forEach(row => {
+      const el = row as HTMLElement
+      const matchStatus = activeStatus === 'all' || el.dataset.status === activeStatus
+      const matchScore = scoreMatch(el.dataset.score || '0', activeScore)
+      const matchSector = sector === 'all' || el.dataset.sector === sector
+      const matchSearch = !search || (el.dataset.search || '').includes(search)
+
+      if (matchStatus && matchScore && matchSector && matchSearch) {
+        el.style.display = 'flex'
+        visible++
+      } else {
+        el.style.display = 'none'
+      }
+    })
+
+    if (resultsCount) {
+      resultsCount.textContent = `Showing ${visible} of ${rows.length} leads`
+    }
+  }
+
+  function sortRows() {
+    const sortVal = (document.getElementById('sort-select') as HTMLSelectElement)?.value || 'score-desc'
+    const list = document.getElementById('leads-list')
+    if (!list) return
+
+    rows.sort((a, b) => {
+      const aEl = a as HTMLElement
+      const bEl = b as HTMLElement
+      if (sortVal === 'score-desc') return (parseInt(bEl.dataset.score || '0') - parseInt(aEl.dataset.score || '0'))
+      if (sortVal === 'score-asc') return (parseInt(aEl.dataset.score || '0') - parseInt(bEl.dataset.score || '0'))
+      if (sortVal === 'name-asc') return (aEl.dataset.search || '').localeCompare(bEl.dataset.search || '')
+      if (sortVal === 'date-desc' || sortVal === 'date-asc') {
+        // Use DOM order as proxy for date (server already sorted)
+        const aIdx = rows.indexOf(a)
+        const bIdx = rows.indexOf(b)
+        return sortVal === 'date-desc' ? aIdx - bIdx : bIdx - aIdx
+      }
+      return 0
+    })
+
+    rows.forEach(row => list.appendChild(row))
+    applyFilters()
+  }
+
+  // Status buttons
+  document.querySelectorAll('#status-bar .filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeStatus = (btn as HTMLElement).dataset.filter || 'all'
+      document.querySelectorAll('#status-bar .filter-btn').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      applyFilters()
     })
   })
+
+  // Score buttons
+  document.querySelectorAll('#score-bar .score-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeScore = (btn as HTMLElement).dataset.scoreFilter || 'all'
+      document.querySelectorAll('#score-bar .score-btn').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      applyFilters()
+    })
+  })
+
+  // Sector dropdown
+  document.getElementById('sector-filter')?.addEventListener('change', () => applyFilters())
+
+  // Search
+  searchInput?.addEventListener('input', () => applyFilters())
+
+  // Sort
+  document.getElementById('sort-select')?.addEventListener('change', () => sortRows())
+
+  // Initial count
+  applyFilters()
 </script>

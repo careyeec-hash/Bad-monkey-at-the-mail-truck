@@ -74,11 +74,22 @@ const statuses = ['new', 'tracking', 'pursuing', 'won', 'lost', 'no-bid', 'dismi
         <dt style="color: #6B7280; font-weight: 500;">GC Assigned</dt>
         <dd style="color: #111827;">{lead.gc_assigned ? lead.gc_name || 'Yes' : 'No'}</dd>
         <dt style="color: #6B7280; font-weight: 500;">Source</dt>
-        <dd style="color: #111827;">{lead.source_name || lead.source_type}</dd>
+        <dd style="color: #111827;">
+          {lead.source_url ? (
+            <a href={lead.source_url} target="_blank" rel="noopener" style="color: #4A6FA5; text-decoration: underline;">
+              {lead.source_name || lead.source_type}
+              <svg style="display: inline; vertical-align: middle; margin-left: 2px;" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </a>
+          ) : (
+            <span>{lead.source_name || lead.source_type}</span>
+          )}
+        </dd>
+        <dt style="color: #6B7280; font-weight: 500;">Source Date</dt>
+        <dd style="color: #111827;">{lead.briefing_date ? new Date(lead.briefing_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</dd>
         <dt style="color: #6B7280; font-weight: 500;">Priority</dt>
         <dd style="color: #111827;">{lead.priority || '—'}</dd>
-        <dt style="color: #6B7280; font-weight: 500;">Created</dt>
-        <dd style="color: #111827;">{new Date(lead.created_at).toLocaleDateString()}</dd>
+        <dt style="color: #6B7280; font-weight: 500;">First Seen</dt>
+        <dd style="color: #111827;">{new Date(lead.first_seen_at || lead.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</dd>
       </dl>
     </div>
 
@@ -132,23 +143,166 @@ const statuses = ['new', 'tracking', 'pursuing', 'won', 'lost', 'no-bid', 'dismi
     </div>
   </div>
 
+  <!-- Outreach Generator -->
+  <div class="card-surface" style="padding: 24px; margin-bottom: 20px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+      <h2 style="font-size: 15px; font-weight: 600; color: #111827;">Outreach Generator</h2>
+      <button type="button" id="generate-outreach-btn" class="btn-primary-custom" style="padding: 8px 16px; font-size: 13px;" data-lead-json={JSON.stringify({
+        project_name: lead.project_name,
+        address: lead.address,
+        project_type: lead.project_type,
+        estimated_value: lead.estimated_value,
+        stage: lead.stage,
+        gc_assigned: lead.gc_assigned,
+        gc_name: lead.gc_name,
+        fit_type: lead.fit_type,
+        source_name: lead.source_name,
+        source_type: lead.source_type,
+        why_it_matters: lead.why_it_matters,
+        action_item: lead.action_item,
+      })}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        Draft Outreach
+      </button>
+    </div>
+
+    {lead.lead_contacts && lead.lead_contacts.length > 0 && (
+      <div style="margin-bottom: 12px;">
+        <label class="form-label" for="outreach-contact-select">Target contact (optional)</label>
+        <select id="outreach-contact-select" class="form-input" style="max-width: 300px;">
+          <option value="">General outreach (no specific contact)</option>
+          {lead.lead_contacts.map((c: any) => (
+            <option value={JSON.stringify({ name: c.name, role: c.role, company: c.company })}>{c.name}{c.role ? ` — ${c.role}` : ''}</option>
+          ))}
+        </select>
+      </div>
+    )}
+
+    <div id="outreach-loading" style="display: none; padding: 24px; text-align: center;">
+      <div style="font-size: 14px; color: #6B7280;">Researching project and drafting outreach...</div>
+      <div style="font-size: 12px; color: #9CA3AF; margin-top: 4px;">This takes 15–30 seconds</div>
+    </div>
+
+    <div id="outreach-error" style="display: none; padding: 14px; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; color: #991B1B; font-size: 14px; margin-bottom: 12px;"></div>
+
+    <div id="outreach-results" style="display: none;">
+      <!-- Research -->
+      <div style="margin-bottom: 16px;">
+        <div style="font-size: 12px; font-weight: 700; color: #065F46; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">Research Summary</div>
+        <div id="outreach-research" style="font-size: 14px; color: #374151; line-height: 1.7; padding: 12px; background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 8px; white-space: pre-line;"></div>
+      </div>
+
+      <!-- Email -->
+      <div style="margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+          <div style="font-size: 12px; font-weight: 700; color: #1E40AF; text-transform: uppercase; letter-spacing: 0.05em;">Email Draft</div>
+          <button type="button" class="copy-btn" data-target="outreach-email-body" style="font-size: 11px; color: #4A6FA5; background: #EEF2FF; border: 1px solid #C7D2FE; padding: 3px 10px; border-radius: 6px; cursor: pointer;">Copy</button>
+        </div>
+        <div style="padding: 14px; background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px;">
+          <div style="font-size: 13px; font-weight: 600; color: #1E40AF; margin-bottom: 8px;">Subject: <span id="outreach-email-subject"></span></div>
+          <div id="outreach-email-body" style="font-size: 14px; color: #1E3A5F; line-height: 1.7; white-space: pre-line;"></div>
+        </div>
+      </div>
+
+      <!-- LinkedIn -->
+      <div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+          <div style="font-size: 12px; font-weight: 700; color: #0A66C2; text-transform: uppercase; letter-spacing: 0.05em;">LinkedIn Message</div>
+          <button type="button" class="copy-btn" data-target="outreach-linkedin" style="font-size: 11px; color: #4A6FA5; background: #EEF2FF; border: 1px solid #C7D2FE; padding: 3px 10px; border-radius: 6px; cursor: pointer;">Copy</button>
+        </div>
+        <div id="outreach-linkedin" style="font-size: 14px; color: #374151; line-height: 1.7; padding: 14px; background: #F0F7FF; border: 1px solid #BFDBFE; border-radius: 8px; white-space: pre-line;"></div>
+      </div>
+    </div>
+
+    <div id="outreach-empty" style="padding: 16px; text-align: center;">
+      <p style="font-size: 13px; color: #9CA3AF;">Click "Draft Outreach" to generate a personalized email and LinkedIn message based on deep research of this project.</p>
+    </div>
+  </div>
+
   <!-- Contacts -->
-  {lead.lead_contacts && lead.lead_contacts.length > 0 && (
-    <div class="card-surface" style="padding: 24px; margin-bottom: 20px;">
-      <h2 style="font-size: 15px; font-weight: 600; color: #111827; margin-bottom: 16px;">Contacts</h2>
-      <div style="display: flex; flex-direction: column; gap: 8px;">
+  <div class="card-surface" style="padding: 24px; margin-bottom: 20px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+      <h2 style="font-size: 15px; font-weight: 600; color: #111827;">Contacts</h2>
+      <button type="button" id="toggle-contact-form" style="font-size: 13px; color: #4A6FA5; background: none; border: none; cursor: pointer; font-weight: 500;">+ Add Contact</button>
+    </div>
+
+    <!-- Add contact form (hidden by default) -->
+    <form id="add-contact-form" style="display: none; margin-bottom: 20px; padding: 16px; background: #F9FAFB; border-radius: 8px; border: 1px solid #E5E7EB;">
+      <input type="hidden" id="contact-lead-id" value={lead.id} />
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+        <div>
+          <label class="form-label" for="contact-name">Name *</label>
+          <input type="text" id="contact-name" class="form-input" required placeholder="Jane Smith" />
+        </div>
+        <div>
+          <label class="form-label" for="contact-role">Role</label>
+          <select id="contact-role" class="form-input">
+            <option value="">Select...</option>
+            <option value="Developer">Developer</option>
+            <option value="Owner">Owner / Owner's Rep</option>
+            <option value="Architect">Architect</option>
+            <option value="GC">General Contractor</option>
+            <option value="Engineer">Engineer</option>
+            <option value="Subcontractor">Subcontractor</option>
+            <option value="Broker">Broker</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+        <div>
+          <label class="form-label" for="contact-company">Company</label>
+          <input type="text" id="contact-company" class="form-input" placeholder="Company name" />
+        </div>
+        <div>
+          <label class="form-label" for="contact-phone">Phone</label>
+          <input type="tel" id="contact-phone" class="form-input" placeholder="480-555-1234" />
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+        <div>
+          <label class="form-label" for="contact-email">Email</label>
+          <input type="email" id="contact-email" class="form-input" placeholder="jane@example.com" />
+        </div>
+        <div>
+          <label class="form-label" for="contact-notes">Notes</label>
+          <input type="text" id="contact-notes" class="form-input" placeholder="Met at project site" />
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button type="submit" class="btn-primary-custom" style="padding: 8px 16px; font-size: 13px;" id="save-contact-btn">Save Contact</button>
+        <button type="button" id="cancel-contact" class="btn-ghost-custom" style="padding: 8px 16px; font-size: 13px;">Cancel</button>
+      </div>
+    </form>
+
+    {lead.lead_contacts && lead.lead_contacts.length > 0 ? (
+      <div style="display: flex; flex-direction: column; gap: 8px;" id="contacts-list">
         {lead.lead_contacts.map((c: any) => (
-          <div style="display: flex; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid #F3F4F6;">
-            <div style="width: 32px; height: 32px; background: #E5E7EB; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #6B7280;">{c.name?.charAt(0) || '?'}</div>
-            <div>
+          <div style="display: flex; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid #F3F4F6;">
+            <div style="width: 32px; height: 32px; background: #E5E7EB; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #6B7280; flex-shrink: 0;">{c.name?.charAt(0) || '?'}</div>
+            <div style="flex: 1; min-width: 0;">
               <div style="font-size: 14px; font-weight: 500; color: #111827;">{c.name}</div>
               <div style="font-size: 12px; color: #9CA3AF;">{[c.role, c.company].filter(Boolean).join(' · ')}</div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-shrink: 0;">
+              {c.phone && (
+                <a href={`tel:${c.phone}`} style="font-size: 12px; color: #4A6FA5; text-decoration: none;" title={c.phone}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                </a>
+              )}
+              {c.email && (
+                <a href={`mailto:${c.email}`} style="font-size: 12px; color: #4A6FA5; text-decoration: none;" title={c.email}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                </a>
+              )}
             </div>
           </div>
         ))}
       </div>
-    </div>
-  )}
+    ) : (
+      <p class="text-secondary" id="no-contacts-msg">No contacts yet. Add people involved in this project.</p>
+    )}
+  </div>
 
   <!-- Notes -->
   <div class="card-surface" style="padding: 24px;">
@@ -193,10 +347,11 @@ const statuses = ['new', 'tracking', 'pursuing', 'won', 'lost', 'no-bid', 'dismi
   // Status change buttons
   document.querySelectorAll('.status-change-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const leadId = btn.dataset.leadId
-      const newStatus = btn.dataset.status
-      btn.textContent = '...'
-      btn.disabled = true
+      const el = btn as HTMLButtonElement
+      const leadId = el.dataset.leadId
+      const newStatus = el.dataset.status || ''
+      el.textContent = '...'
+      el.disabled = true
 
       try {
         const res = await fetch(`/api/leads/${leadId}`, {
@@ -209,13 +364,13 @@ const statuses = ['new', 'tracking', 'pursuing', 'won', 'lost', 'no-bid', 'dismi
         } else {
           const data = await res.json()
           alert('Error: ' + (data.error || 'Failed to update'))
-          btn.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1)
-          btn.disabled = false
+          el.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1)
+          el.disabled = false
         }
-      } catch (err) {
-        alert('Error: ' + err.message)
-        btn.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1)
-        btn.disabled = false
+      } catch (err: any) {
+        alert('Error: ' + (err?.message || err))
+        el.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1)
+        el.disabled = false
       }
     })
   })
@@ -223,17 +378,16 @@ const statuses = ['new', 'tracking', 'pursuing', 'won', 'lost', 'no-bid', 'dismi
   // Add note form
   document.getElementById('add-note-form')?.addEventListener('submit', async (e) => {
     e.preventDefault()
-    const leadId = document.getElementById('note-lead-id').value
-    const noteInput = document.getElementById('note-text')
-    const text = noteInput.value.trim()
+    const leadId = (document.getElementById('note-lead-id') as HTMLInputElement)?.value
+    const noteInput = document.getElementById('note-text') as HTMLInputElement
+    const text = noteInput?.value?.trim()
     if (!text) return
 
-    const btn = e.target.querySelector('button')
+    const btn = (e.target as HTMLFormElement)?.querySelector('button') as HTMLButtonElement
     btn.textContent = '...'
     btn.disabled = true
 
     try {
-      // Add note via a custom endpoint — we'll handle it in the PUT
       const res = await fetch(`/api/leads/${leadId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -244,11 +398,129 @@ const statuses = ['new', 'tracking', 'pursuing', 'won', 'lost', 'no-bid', 'dismi
       } else {
         alert('Failed to add note')
       }
-    } catch (err) {
-      alert('Error: ' + err.message)
+    } catch (err: any) {
+      alert('Error: ' + (err?.message || err))
     } finally {
       btn.textContent = 'Add'
       btn.disabled = false
     }
+  })
+
+  // Toggle contact form
+  const contactForm = document.getElementById('add-contact-form') as HTMLFormElement
+  document.getElementById('toggle-contact-form')?.addEventListener('click', () => {
+    contactForm.style.display = contactForm.style.display === 'none' ? 'block' : 'none'
+  })
+  document.getElementById('cancel-contact')?.addEventListener('click', () => {
+    contactForm.style.display = 'none'
+    contactForm.reset()
+  })
+
+  // Save contact
+  contactForm?.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const leadId = (document.getElementById('contact-lead-id') as HTMLInputElement)?.value
+    const btn = document.getElementById('save-contact-btn') as HTMLButtonElement
+    btn.textContent = 'Saving...'
+    btn.disabled = true
+
+    const contact = {
+      lead_id: leadId,
+      name: (document.getElementById('contact-name') as HTMLInputElement).value.trim(),
+      role: (document.getElementById('contact-role') as HTMLSelectElement).value || null,
+      company: (document.getElementById('contact-company') as HTMLInputElement).value.trim() || null,
+      phone: (document.getElementById('contact-phone') as HTMLInputElement).value.trim() || null,
+      email: (document.getElementById('contact-email') as HTMLInputElement).value.trim() || null,
+      notes: (document.getElementById('contact-notes') as HTMLInputElement).value.trim() || null,
+    }
+
+    try {
+      const res = await fetch(`/api/leads/${leadId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ _addContact: contact })
+      })
+      if (res.ok) {
+        window.location.reload()
+      } else {
+        const data = await res.json()
+        alert('Error: ' + (data.error || 'Failed to save contact'))
+      }
+    } catch (err: any) {
+      alert('Error: ' + (err?.message || err))
+    } finally {
+      btn.textContent = 'Save Contact'
+      btn.disabled = false
+    }
+  })
+
+  // Outreach generator
+  const outreachBtn = document.getElementById('generate-outreach-btn') as HTMLButtonElement
+  outreachBtn?.addEventListener('click', async () => {
+    const leadData = JSON.parse(outreachBtn.dataset.leadJson || '{}')
+    const contactSelect = document.getElementById('outreach-contact-select') as HTMLSelectElement | null
+    let contactName = null, contactRole = null, contactCompany = null
+
+    if (contactSelect?.value) {
+      const c = JSON.parse(contactSelect.value)
+      contactName = c.name
+      contactRole = c.role
+      contactCompany = c.company
+    }
+
+    const loading = document.getElementById('outreach-loading')!
+    const results = document.getElementById('outreach-results')!
+    const errorEl = document.getElementById('outreach-error')!
+    const empty = document.getElementById('outreach-empty')!
+
+    outreachBtn.disabled = true
+    outreachBtn.textContent = 'Generating...'
+    loading.style.display = 'block'
+    results.style.display = 'none'
+    errorEl.style.display = 'none'
+    empty.style.display = 'none'
+
+    try {
+      const res = await fetch('/api/outreach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lead: leadData, contactName, contactRole, contactCompany })
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || `Request failed (${res.status})`)
+      }
+
+      const data = await res.json()
+
+      document.getElementById('outreach-research')!.textContent = data.research || ''
+      document.getElementById('outreach-email-subject')!.textContent = data.email?.subject || ''
+      document.getElementById('outreach-email-body')!.textContent = data.email?.body || ''
+      document.getElementById('outreach-linkedin')!.textContent = data.linkedin || ''
+
+      loading.style.display = 'none'
+      results.style.display = 'block'
+    } catch (err: any) {
+      loading.style.display = 'none'
+      errorEl.textContent = err?.message || 'Failed to generate outreach'
+      errorEl.style.display = 'block'
+    } finally {
+      outreachBtn.disabled = false
+      outreachBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Draft Outreach'
+    }
+  })
+
+  // Copy buttons
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const el = btn as HTMLButtonElement
+      const targetId = el.dataset.target || ''
+      const text = document.getElementById(targetId)?.textContent || ''
+      navigator.clipboard.writeText(text).then(() => {
+        el.textContent = 'Copied!'
+        setTimeout(() => { el.textContent = 'Copy' }, 2000)
+      })
+    })
   })
 </script>
