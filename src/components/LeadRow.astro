@@ -67,13 +67,20 @@ const sourceDateLabel = sourceDate ? new Date(sourceDate).toLocaleDateString('en
 
   <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
     {lead.project_type && <SectorBadge sector={lead.project_type} />}
-    {lead.source_url && (
+    {lead.source_url ? (
       <button
         type="button"
         onclick={`event.preventDefault(); event.stopPropagation(); window.open('${lead.source_url}', '_blank', 'noopener');`}
         style="font-size: 11px; color: #4A6FA5; background: #EEF2FF; border: 1px solid #C7D2FE; padding: 2px 8px; border-radius: 999px; cursor: pointer; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
         title={lead.source_url}
       >↗ {sourceHost || 'source'}</button>
+    ) : (
+      <button
+        type="button"
+        onclick={`event.preventDefault(); event.stopPropagation(); window.open('https://www.google.com/search?q=' + encodeURIComponent('${lead.project_name.replace(/'/g, "\\'")} Arizona construction'), '_blank', 'noopener');`}
+        style="font-size: 11px; color: #9CA3AF; background: #F3F4F6; border: 1px solid #E5E7EB; padding: 2px 8px; border-radius: 999px; cursor: pointer;"
+        title="Search for this project"
+      >🔍 search</button>
     )}
     {lead.fit_type && <FitBadge fitType={lead.fit_type} />}
     <StatusBadge status={lead.status} />
