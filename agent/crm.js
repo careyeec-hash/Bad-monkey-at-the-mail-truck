@@ -58,20 +58,28 @@ export async function processLeads(evaluatedItems, profile) {
   for (const item of qualifiedItems) {
     const address = item.permitData?.address || item.originalItem?.permitData?.address || ''
     const normalized = normalizeAddress(address)
+    const sourceUrl = item.url || item.originalItem?.url || null
 
-    if (!normalized) {
-      // No address — create as new lead
-      await createLead(item, profile)
-      created++
-      continue
+    // Dedup strategy:
+    //   1. If we have a real address, match on normalized_address (permit items)
+    //   2. Otherwise, match on source_url (RSS/news items — same article = same lead)
+    //   3. If neither, treat as new (no reliable dedup key)
+    let existing = null
+    if (normalized) {
+      const { data } = await supabase
+        .from('leads')
+        .select('id, project_name, actionability_score, bristlecone_fit, action_item')
+        .eq('normalized_address', normalized)
+        .limit(1)
+      existing = data
+    } else if (sourceUrl) {
+      const { data } = await supabase
+        .from('leads')
+        .select('id, project_name, actionability_score, bristlecone_fit, action_item')
+        .eq('source_url', sourceUrl)
+        .limit(1)
+      existing = data
     }
-
-    // Check for existing lead by normalized address
-    const { data: existing } = await supabase
-      .from('leads')
-      .select('id, project_name, actionability_score, bristlecone_fit, action_item')
-      .eq('normalized_address', normalized)
-      .limit(1)
 
     if (existing && existing.length > 0) {
       // Update existing lead — accumulate, don't overwrite
@@ -109,7 +117,7 @@ export async function processLeads(evaluatedItems, profile) {
 
 async function createLead(item, profile) {
   const id = generateLeadId()
-  const address = item.permitData?.address || item.originalItem?.permitData?.address || item.one_line || ''
+  const address = item.permitData?.address || item.originalItem?.permitData?.address || ''
   const assignedTo = profile.company?.keyPeople?.[0]?.name || 'Unassigned'
 
   const lead = {
@@ -126,9 +134,9 @@ async function createLead(item, profile) {
     gc_name: item.permitData?.contractor || null,
     permit_number: item.permitData?.permitNumber || null,
     source_type: 'agent',
-    source_name: item.originalItem?.source || null,
+    source_name: item.originalItem?.source || item.source || null,
     source_category: item.category || item.originalItem?.sourceCategory || null,
-    source_url: item.url || item.originalItem?.url || null,
+    source_url: item.url || item.originalItem?.url || item.originalItem?.link || null,
     briefing_date: new Date().toISOString().split('T')[0],
     actionability_score: item.actionability_score,
     bristlecone_fit: item.bristlecone_fit || null,

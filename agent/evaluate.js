@@ -18,16 +18,38 @@ function buildSystemPrompt(profile, existingLeads) {
 
   let prompt = `You are a construction market intelligence analyst creating a daily briefing for ${p.profileName}, a ${p.company.type} based in ${p.company.headquarters}.
 
+PRIMARY BUSINESS — READ THIS FIRST:
+${p.scoringGuidance?.primaryTrack || 'Bristlecone pursues GC work primarily; concrete sub is a secondary track.'}
+
 COMPANY CONTEXT:
 ${p.company.differentiators.map(d => '- ' + d).join('\n')}
 Expanding into ${p.location.primary} and ${p.location.secondary.join(', ')}.
 
-Sweet spot: ${p.projectFit.strongFit.join(', ')}
-Also interested in: ${p.projectFit.possibleFit.join(', ')}
-Concrete scope opportunities: ${p.projectFit.concreteScopeOnly.join('; ')}
-Not a fit: ${p.projectFit.notAFit.join(', ')}
+PRIMARY BUSINESS SWEET SPOT (GC pursuit work — the focus):
+${p.projectFit.strongFit.map(s => '- ' + s).join('\n')}
+
+Also interested in (GC pursuit, secondary fit):
+${p.projectFit.possibleFit.map(s => '- ' + s).join('\n')}
+
+SECONDARY TRACK — Concrete sub-scope opportunities (only when a competitor GC has won the project):
+${p.projectFit.concreteScopeOnly.map(s => '- ' + s).join('\n')}
+
+Not a fit (drop or score 1-2):
+${p.projectFit.notAFit.map(s => '- ' + s).join('\n')}
+
 Delivery preferences: ${JSON.stringify(p.projectFit.deliveryMethods)}
 Best clients: ${p.projectFit.bestClients}`
+
+  if (p.location?.targetSubmarkets?.length > 0) {
+    prompt += `\n\nTARGET SUBMARKETS (apply +1 score boost when a project is in one of these — per Tom's intake):\n${p.location.targetSubmarkets.map(s => '- ' + s).join('\n')}`
+  }
+
+  if (p.distressedSignals) {
+    prompt += `\n\nDISTRESSED / RESCUE OPPORTUNITY DETECTION (Tom: 'broken, foreclosed, hairy projects are right in our wheelhouse'):
+Watch for these keywords in the text and treat any match as a HIGH-VALUE signal:
+${p.distressedSignals.keywords.map(k => '- "' + k + '"').join('\n')}
+Scoring impact: ${p.distressedSignals.scoringImpact}`
+  }
 
   if (p.targetDevelopers?.length > 0) {
     prompt += `\n\nTARGET DEVELOPERS (boost score +2 if these appear):\n${p.targetDevelopers.join(', ')}`
@@ -58,7 +80,7 @@ For each item provide:
 - estimated_value: dollar range if detectable, null if not
 - project_stage: planning | entitled | permitted | bidding | under-construction | completed | unknown
 - bristlecone_fit: strong-fit | possible-fit | concrete-scope | monitor | not-a-fit
-- fit_type: gc-scope | concrete-scope | both
+- fit_type: gc-scope | concrete-scope | both — CHOOSE CAREFULLY using the rules below
 - one_line: concise project name (e.g. "Halo Vista Mixed-Use — N Phoenix" not a full sentence)
 - project_summary: 2-3 sentence factual summary of the project — what's being built, where, how big, by whom
 - action_item: specific next step Tom should take RIGHT NOW. Be prescriptive — name the person to call, the angle to pitch, the relationship to leverage. For GC scope: "Call [developer] — pitch early preconstruction collaboration and cost certainty." For concrete scope: "Identify the GC and call to bid structural concrete." Always match Tom's pursuit process: network intro → phone → LinkedIn → email → quals.
@@ -79,19 +101,44 @@ Pursuit Match: ${p.scoringGuidance.pursuitMatch}
 IMPORTANT — GC FIELD NOTE:
 ${p.scoringGuidance.gcFieldNote}
 
-SCORING — BE GENEROUS, NOT STINGY:
-- Score 4+ for anything construction-related in the Phoenix metro
+FIT_TYPE RULES — pick exactly one, follow this decision tree EXACTLY:
+
+STEP 1: Is a specific General Contractor explicitly named in the item text as having WON or being AWARDED the project? (Not just "shortlisted", not just "considering" — explicitly named as the winner.)
+- NO → fit_type = "gc-scope". STOP. Do not consider concrete-scope. The project is a GC pursuit opportunity for Bristlecone regardless of project type, location, or proximity to TSMC.
+- YES, and the named GC is on the competitors list → go to STEP 2.
+- YES, and the named GC is NOT a competitor → fit_type = "gc-scope" (Tom may know someone on that GC's team).
+
+STEP 2: A competitor GC is named. Does the project have substantial structural concrete content? (high-rise, mid-rise with podium, parking structure, data center, semiconductor fab, large industrial slab pour)
+- YES → fit_type = "concrete-scope". Action: call the winning GC to bid concrete sub.
+- NO → fit_type = "gc-scope" but score it lower since it's locked up.
+
+STEP 3: "both" — almost never use this. Only when a multi-phase development has some phases with GCs assigned and others without. If uncertain, pick "gc-scope".
+
+CRITICAL CLARIFICATIONS:
+- "TSMC area" / "TSMC-adjacent" / "near TSMC" does NOT mean concrete-scope. TSMC itself is a semiconductor fab. Mixed-use, multifamily, and commercial projects in the TSMC area are normal GC pursuit work — they happen to be near a big employer driving demand. Score these HIGH (target submarket boost + Phoenix demand driver).
+- "Master plan" / "master-plan" / "master planned community" = gc-scope. Master plans by definition don't have GCs assigned yet.
+- Mixed-use developments without a named GC = gc-scope. Period.
+
+DO NOT default to "both" out of caution. Almost every legitimate lead is gc-scope.
+
+SCORING — BE GENEROUS, NOT STINGY (but enforce the floors and ceilings below):
+- Score 4+ for anything construction-related in the Phoenix metro WITH a specific named project (not industry stats)
 - Score 5+ for any project with a named developer, architect, or address
 - Score 6+ for any project where Tom could take an action
-- Score 7+ for projects matching Bristlecone's sweet spot (multifamily, mixed-use, institutional, adaptive reuse)
+- Score 7+ for projects matching Bristlecone's GC pursuit sweet spot (multifamily, mixed-use, hospitality, institutional, adaptive reuse) in Phoenix metro
 - Score 8+ for act-this-week items with specific contacts
 - Score 9+ for target developer projects or RFPs with deadlines
 - A target developer's new project = always 8+
-- A competitor winning a large project = 6+ (concrete scope opportunity)
+- A competitor GC winning a large project = MAX 6 (concrete sub track is capped — it's secondary)
 - ANY project with no GC assigned in Bristlecone's sweet spot = 7+
-- Market signals and pipeline reports = 4-5
+- Industry stats, employment data, market roundups, "Top 5 deals" articles with no specific named project = MAX 3 (these should usually be filtered before reaching you)
+- "100% leased" / "fully leased" announcements about already-built buildings = MAX 2 (the building exists; nothing to build)
+- TARGET SUBMARKET BOOST: After computing the base score, if the project is in Downtown Phoenix, Camelback corridor, Tempe Town Lake, Scottsdale Airpark, the I-17 industrial corridor, the West Valley growth nodes (Glendale/Goodyear/Surprise/Buckeye), or the TSMC-adjacent N Phoenix area: ADD +1 to the final score. This is mandatory, not optional. Tom called these out specifically in the intake.
+- Phoenix demand-driver proximity: Projects adjacent to TSMC, major employers, or new transit lines get the same +1 boost as target submarkets.
 
-CRITICAL — BRISTLECONE FIT: For EVERY item scored 4+, you MUST explain specifically why this matters to Bristlecone and what angle Tom should use. Reference his company's differentiators: self-perform structural concrete, design-forward complex projects, early preconstruction collaboration, new market entry hunger. Every project_summary and pitch_angle must be filled in for items 4+.`
+CRITICAL — BRISTLECONE FIT: For EVERY item scored 4+, you MUST explain specifically why this matters to Bristlecone and what angle Tom should use. Reference Bristlecone's PRIMARY differentiators in this order: design-forward complex projects, early preconstruction collaboration with developers, comfort with adaptive reuse and distressed/hairy projects, new market entry hunger, AND (only when relevant) self-perform structural concrete. Every project_summary and pitch_angle must be filled in for items 4+.
+
+CRITICAL — ARCHITECT EXTRACTION: ${p.scoringGuidance?.architectExtraction || 'Extract architect names into key_contacts when present.'}`
 
   // Inject few-shot calibration examples if available in profile
   if (p.fewShotExamples?.length > 0) {
@@ -101,11 +148,23 @@ CRITICAL — BRISTLECONE FIT: For EVERY item scored 4+, you MUST explain specifi
     }
   }
 
-  // Inject score floors if available in profile
-  if (p.scoreFloors?.length > 0) {
-    prompt += `\n\nSCORE FLOORS — minimum scores for these patterns (override your initial assessment if lower):`
+  // Inject minimum/maximum scores for known patterns
+  if (p.minimumScores?.length > 0) {
+    prompt += `\n\nMINIMUM / MAXIMUM SCORES — when you see these patterns, override your initial score:`
+    for (const rule of p.minimumScores) {
+      const bound = rule.minScore !== undefined && rule.maxScore !== undefined
+        ? `clamp to ${rule.minScore}-${rule.maxScore}`
+        : rule.minScore !== undefined
+          ? `minimum ${rule.minScore}`
+          : `maximum ${rule.maxScore}`
+      prompt += `\n- ${rule.pattern} → ${bound} (${rule.rationale})`
+    }
+  }
+  // Backwards-compat: still honor scoreFloors if a profile hasn't been migrated
+  else if (p.scoreFloors?.length > 0) {
+    prompt += `\n\nMINIMUM SCORES — when you see these patterns, override your initial score if lower:`
     for (const floor of p.scoreFloors) {
-      prompt += `\n- ${floor.condition} → minimum score ${floor.minScore} (${floor.note})`
+      prompt += `\n- ${floor.condition} → minimum ${floor.minScore} (${floor.note})`
     }
   }
 
@@ -201,11 +260,19 @@ export default async function evaluate(items, profileName) {
     const results = await evaluateBatch(batch, systemPrompt)
 
     // Merge original item data with evaluation results
-    for (const result of results) {
-      const originalItem = batch.find(item => item.url === result.url) || batch.find(item => item.title === result.title)
+    for (let j = 0; j < results.length; j++) {
+      const result = results[j]
+      // Match by URL first, then title, then by position (Opus often rewrites titles/drops URLs)
+      const originalItem = batch.find(item => item.url && item.url === result.url)
+        || batch.find(item => item.title && item.title === result.title)
+        || batch[j] || null
+      // Ensure source URL is always carried forward from the original scraped item
+      if (originalItem?.url && !result.url) {
+        result.url = originalItem.url
+      }
       allResults.push({
         ...result,
-        originalItem: originalItem || null
+        originalItem
       })
     }
   }
@@ -217,6 +284,15 @@ export default async function evaluate(items, profileName) {
   const watchList = allResults.filter(r => r.actionability_score >= 5 && r.actionability_score < 8).length
 
   console.log(`  Evaluated ${allResults.length} items: ${hotLeads} hot (8+), ${watchList} watch (5-7)`)
+
+  // Diagnostic: show every scored item so we can see what Opus actually decided
+  // (especially useful for items that fall below digestThreshold and otherwise vanish)
+  for (const r of allResults) {
+    const score = r.actionability_score ?? '?'
+    const fit = r.fit_type || '-'
+    const oneLine = (r.one_line || r.title || '(no title)').slice(0, 80)
+    console.log(`    [${score}] ${fit.padEnd(14)} ${oneLine}`)
+  }
 
   return allResults
 }
