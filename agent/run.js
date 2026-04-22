@@ -25,6 +25,7 @@ import ingest from './ingest.js'
 import prefilter from './prefilter.js'
 import evaluate from './evaluate.js'
 import { processLeads, logAgentRun } from './crm.js'
+import enrich from './enrich.js'
 import { generateBriefing, generateWeeklyEmail, generateUrgentAlert } from './generate.js'
 import publish from './publish.js'
 import { sendDigestEmail, sendUrgentAlert } from './email.js'
@@ -33,7 +34,8 @@ import { sendDigestEmail, sendUrgentAlert } from './email.js'
 // Runs daily at 6 AM MST via cron
 //
 // Pipeline: Ingest → Dedup → Pre-filter (Haiku) → Evaluate (Opus) →
-//           CRM Update → Generate Briefing → Publish → Email → Log
+//           CRM Update → Enrich (score >= threshold) → Generate Briefing →
+//           Publish → Email → Log
 
 async function main() {
   const startTime = Date.now()
@@ -59,6 +61,14 @@ async function main() {
 
   // Step 4: Update CRM — create/update leads in Supabase
   const { created, updated } = await processLeads(evaluated, profile)
+
+  // Step 4.5: Auto-enrich high-priority leads (score >= profile.enrichmentThreshold)
+  // Pulls developer/architect intel + decision-maker contacts from Apollo,
+  // detects warm-intro angles from CRM history, rewrites action_item with
+  // concrete names + numbers. Runs on the persisted lead rows so it covers
+  // both new leads from this run and any prior leads that scored up to 8+
+  // via accumulation. Skipped silently if APOLLO_API_KEY is not set.
+  const enrichResult = await enrich(profile)
 
   // Step 5: Generate daily briefing Markdown
   const stats = {
@@ -98,7 +108,7 @@ async function main() {
     sourcesChecked,
     sourcesFailed,
     failures,
-    estimatedCost: estimateCost(filtered.length, evaluated.length)
+    estimatedCost: estimateCost(filtered.length, evaluated.length, enrichResult?.enriched || 0)
   })
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
@@ -106,16 +116,20 @@ async function main() {
   console.log(`  Items: ${items.length} ingested → ${filtered.length} filtered → ${evaluated.length} evaluated`)
   console.log(`  Leads: ${created} created, ${updated} updated`)
   console.log(`  Hot: ${hotLeads}, Watch: ${watchList}`)
+  console.log(`  Enriched: ${enrichResult?.enriched || 0} (${enrichResult?.failed || 0} failed)`)
   console.log(`  Published: ${publishSuccess}, Email: ${emailSent}`)
 }
 
-function estimateCost(filteredCount, evaluatedCount) {
+function estimateCost(filteredCount, evaluatedCount, enrichedCount = 0) {
   // Rough cost estimate per run
   // Haiku pre-filter: ~$0.001 per item
   // Opus evaluation: ~$0.03 per item
+  // Enrichment per lead: Haiku extract (~$0.002) + Opus synthesis (~$0.015) ≈ $0.02
+  // Apollo credits aren't included — those bill separately on the Apollo plan.
   const haikuCost = filteredCount * 0.001
   const opusCost = evaluatedCount * 0.03
-  return parseFloat((haikuCost + opusCost).toFixed(4))
+  const enrichCost = enrichedCount * 0.02
+  return parseFloat((haikuCost + opusCost + enrichCost).toFixed(4))
 }
 
 main().catch(err => {

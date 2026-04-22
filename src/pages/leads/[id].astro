@@ -9,7 +9,7 @@ const { id } = Astro.params
 
 const { data: lead, error } = await supabase
   .from('leads')
-  .select('*, lead_contacts(*), lead_notes(*, id, created_at, author, text), agent_updates(*)')
+  .select('*, lead_contacts(*, enriched_organizations(*)), lead_notes(*, id, created_at, author, text), agent_updates(*)')
   .eq('id', id)
   .single()
 
@@ -20,6 +20,23 @@ if (error || !lead) {
 const notes = (lead.lead_notes || []).sort((a: any, b: any) =>
   new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
 )
+
+// Group contacts by organization for the Firm Background panel.
+// Contacts without an org_id (e.g. manually-added or named-from-article)
+// don't appear here — they're listed in the Contacts section below.
+const contactsByOrg: Map<string, { org: any; contacts: any[] }> = new Map()
+for (const c of lead.lead_contacts || []) {
+  if (!c.enriched_organizations) continue
+  const key = c.enriched_organizations.id
+  if (!contactsByOrg.has(key)) {
+    contactsByOrg.set(key, { org: c.enriched_organizations, contacts: [] })
+  }
+  contactsByOrg.get(key)!.contacts.push(c)
+}
+const enrichedOrgs = Array.from(contactsByOrg.values())
+
+// Pull the latest enrichment-agent note (warm-intro angle, firm summary)
+const enrichmentNote = notes.find((n: any) => n.author === 'enrichment-agent')
 
 const statuses = ['new', 'tracking', 'pursuing', 'market-intel', 'won', 'lost', 'no-bid', 'dismissed']
 const statusLabels: Record<string, string> = {
@@ -61,6 +78,33 @@ const statusLabels: Record<string, string> = {
           {statusLabels[s] || (s.charAt(0).toUpperCase() + s.slice(1))}
         </button>
       ))}
+    </div>
+
+    <!-- Enrichment status -->
+    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #E5E7EB; display: flex; align-items: center; gap: 10px; font-size: 12px; flex-wrap: wrap;">
+      <span style="color: #9CA3AF;">Enrichment:</span>
+      {lead.enrichment_status === 'done' && (
+        <span style="color: #065F46; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Done
+          {lead.enriched_at && <span style="color: #9CA3AF; font-weight: 400;"> · {new Date(lead.enriched_at).toLocaleDateString()}</span>}
+        </span>
+      )}
+      {lead.enrichment_status === 'pending' && (
+        <span style="color: #92400E; font-weight: 600;">⏳ In queue</span>
+      )}
+      {lead.enrichment_status === 'failed' && (
+        <span style="color: #991B1B; font-weight: 600;">⚠ Failed — will retry on next run</span>
+      )}
+      {!lead.enrichment_status && (lead.actionability_score || 0) >= 8 && (
+        <span style="color: #6B7280;">Queued for next daily run</span>
+      )}
+      {!lead.enrichment_status && (lead.actionability_score || 0) < 8 && (
+        <span style="color: #9CA3AF;">Below threshold (score ≥ 8 auto-enriches)</span>
+      )}
+      <button id="reenrich-btn" data-lead-id={lead.id} style="margin-left: auto; font-size: 11px; padding: 3px 10px; background: white; border: 1px solid #D1D5DB; border-radius: 6px; cursor: pointer; color: #4A6FA5;">
+        Re-enrich on next run
+      </button>
     </div>
   </div>
 
@@ -150,6 +194,68 @@ const statusLabels: Record<string, string> = {
       )}
     </div>
   </div>
+
+  {(enrichedOrgs.length > 0 || enrichmentNote) && (
+    <div class="card-surface" style="padding: 24px; margin-bottom: 20px;">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+        <h2 style="font-size: 15px; font-weight: 600; color: #111827; margin: 0;">Firm Background</h2>
+        <span style="font-size: 11px; padding: 2px 8px; background: #ECFDF5; color: #065F46; border-radius: 999px; font-weight: 600;">AUTO-ENRICHED</span>
+      </div>
+
+      {enrichmentNote && (
+        <div style="margin-bottom: 16px; padding: 12px; background: #F9FAFB; border-left: 3px solid #10B981; border-radius: 6px; font-size: 13px; color: #374151; line-height: 1.7; white-space: pre-line;">{enrichmentNote.text}</div>
+      )}
+
+      {enrichedOrgs.length > 0 && (
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          {enrichedOrgs.map(({ org, contacts }) => (
+            <div style="padding: 14px; border: 1px solid #E5E7EB; border-radius: 8px;">
+              <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
+                <span style="font-size: 14px; font-weight: 700; color: #111827;">{org.display_name}</span>
+                {org.org_type && <span style="font-size: 11px; padding: 1px 8px; background: #EEF2FF; color: #3730A3; border-radius: 999px; font-weight: 600; text-transform: capitalize;">{org.org_type}</span>}
+                {org.website && <a href={org.website} target="_blank" rel="noopener" style="font-size: 11px; color: #4A6FA5; text-decoration: underline;">website ↗</a>}
+                {org.linkedin_url && <a href={org.linkedin_url} target="_blank" rel="noopener" style="font-size: 11px; color: #0A66C2; text-decoration: underline;">LinkedIn ↗</a>}
+              </div>
+
+              <div style="font-size: 12px; color: #6B7280; margin-bottom: 10px;">
+                {[
+                  org.hq_city && org.hq_state ? `${org.hq_city}, ${org.hq_state}` : org.hq_city || org.hq_state,
+                  org.employee_count ? `~${org.employee_count} employees` : null,
+                  org.industry,
+                  org.founded_year ? `est. ${org.founded_year}` : null
+                ].filter(Boolean).join(' · ') || 'No firmographic data'}
+              </div>
+
+              {contacts.length > 0 && (
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <div style="font-size: 11px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.04em;">Decision Makers</div>
+                  {contacts.map((c: any) => (
+                    <div style="display: flex; align-items: center; gap: 10px; font-size: 13px;">
+                      <div style="flex: 1;">
+                        <span style="font-weight: 600; color: #111827;">{c.name}</span>
+                        {c.role && <span style="color: #6B7280;"> · {c.role}</span>}
+                      </div>
+                      <div style="display: flex; gap: 6px;">
+                        {c.phone && (
+                          <a href={`tel:${c.phone}`} style="font-size: 12px; color: #4A6FA5; text-decoration: none; padding: 2px 8px; background: #EFF6FF; border-radius: 4px;" title={c.phone}>📞 {c.phone}</a>
+                        )}
+                        {c.email && (
+                          <a href={`mailto:${c.email}`} style="font-size: 12px; color: #4A6FA5; text-decoration: none; padding: 2px 8px; background: #EFF6FF; border-radius: 4px;" title={c.email}>✉ Email</a>
+                        )}
+                        {c.notes && c.notes.includes('LinkedIn:') && (
+                          <a href={c.notes.replace('LinkedIn: ', '')} target="_blank" rel="noopener" style="font-size: 12px; color: #0A66C2; text-decoration: none; padding: 2px 8px; background: #EFF6FF; border-radius: 4px;">in</a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )}
 
   <!-- Outreach Generator -->
   <div class="card-surface" style="padding: 24px; margin-bottom: 20px;">
@@ -516,6 +622,31 @@ const statusLabels: Record<string, string> = {
     } finally {
       outreachBtn.disabled = false
       outreachBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Draft Outreach'
+    }
+  })
+
+  // Re-enrich: queue lead for next daily run by clearing enrichment_status
+  document.getElementById('reenrich-btn')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget as HTMLButtonElement
+    const leadId = btn.dataset.leadId
+    btn.disabled = true
+    btn.textContent = 'Queuing...'
+    try {
+      const res = await fetch(`/api/leads/${leadId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enrichment_status: null, enriched_at: null })
+      })
+      if (res.ok) {
+        btn.textContent = '✓ Queued for next run'
+        btn.style.color = '#065F46'
+      } else {
+        btn.textContent = 'Failed — try again'
+        btn.disabled = false
+      }
+    } catch {
+      btn.textContent = 'Failed — try again'
+      btn.disabled = false
     }
   })
 
