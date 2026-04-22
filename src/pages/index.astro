@@ -19,11 +19,13 @@ const { count: hotCount } = await supabase
   .gte('actionability_score', 8)
   .gte('created_at', monday.toISOString())
 
-// Fetch leads for intent buckets (open pursuits only)
+// Briefing = untriaged inbox. Once Tom moves a lead to tracking/pursuing it
+// leaves the briefing and lives on the Leads page. New leads accumulate here
+// across days so nothing gets missed if he doesn't log in daily.
 const { data: openLeads } = await supabase
   .from('leads')
   .select('*')
-  .in('status', ['new', 'tracking', 'pursuing'])
+  .eq('status', 'new')
   .order('actionability_score', { ascending: false })
   .limit(100)
 
@@ -136,10 +138,10 @@ const sourcesActive = run?.sources_checked || 0
     </div>
   ) : (
     <div class="card-surface" style="padding: 24px;">
-      <h2 style="font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 16px;">Latest Briefing</h2>
+      <h2 style="font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 16px;">Inbox Zero</h2>
       <div class="empty-state">
-        <p style="font-size: 15px; color: #6B7280;">No briefings yet.</p>
-        <p style="font-size: 13px; color: #9CA3AF; margin-top: 4px;">The agent hasn't run its first daily scan. Briefings will appear here after each run.</p>
+        <p style="font-size: 15px; color: #6B7280;">No new leads to triage.</p>
+        <p style="font-size: 13px; color: #9CA3AF; margin-top: 4px;">All surfaced leads have been moved to tracking, pursuing, or dismissed. Check the Leads page for active pipeline.</p>
       </div>
     </div>
   )}
