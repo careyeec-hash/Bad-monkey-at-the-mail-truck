@@ -94,42 +94,45 @@ const sourcesActive = run?.sources_checked || 0
   {hasAny ? (
     <div style="display: flex; flex-direction: column; gap: 28px;">
       {hotLeads.length > 0 && (
-        <section>
-          <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px;">
-            <h2 style="font-size: 16px; font-weight: 700; color: #111827;">Hot Leads</h2>
+        <details class="bucket" data-bucket="hot" open>
+          <summary>
+            <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            <h2 style="font-size: 16px; font-weight: 700; color: #111827; margin: 0;">Hot Leads</h2>
             <span style="font-size: 12px; color: #DC2626; font-weight: 600;">· pursue now</span>
             <span style="font-size: 12px; color: #9CA3AF;">({hotLeads.length})</span>
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 8px;">
+          </summary>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">
             {hotLeads.map((lead: any) => <LeadRow lead={lead} />)}
           </div>
-        </section>
+        </details>
       )}
 
       {earlyLeads.length > 0 && (
-        <section>
-          <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px;">
-            <h2 style="font-size: 16px; font-weight: 700; color: #111827;">Early Signals</h2>
+        <details class="bucket" data-bucket="early" open>
+          <summary>
+            <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            <h2 style="font-size: 16px; font-weight: 700; color: #111827; margin: 0;">Early Signals</h2>
             <span style="font-size: 12px; color: #B45309; font-weight: 600;">· influence window</span>
             <span style="font-size: 12px; color: #9CA3AF;">({earlyLeads.length})</span>
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 8px;">
+          </summary>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">
             {earlyLeads.map((lead: any) => <LeadRow lead={lead} />)}
           </div>
-        </section>
+        </details>
       )}
 
       {watchLeads.length > 0 && (
-        <section>
-          <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px;">
-            <h2 style="font-size: 16px; font-weight: 700; color: #111827;">Watch List</h2>
+        <details class="bucket" data-bucket="watch" open>
+          <summary>
+            <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            <h2 style="font-size: 16px; font-weight: 700; color: #111827; margin: 0;">Watch List</h2>
             <span style="font-size: 12px; color: #6B7280; font-weight: 600;">· monitoring</span>
             <span style="font-size: 12px; color: #9CA3AF;">({watchLeads.length})</span>
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 8px;">
+          </summary>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">
             {watchLeads.map((lead: any) => <LeadRow lead={lead} />)}
           </div>
-        </section>
+        </details>
       )}
 
       <div>
@@ -155,6 +158,24 @@ const sourcesActive = run?.sources_checked || 0
   )}
 </Layout>
 
+<style>
+  .bucket > summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+  }
+  .bucket > summary::-webkit-details-marker { display: none; }
+  .bucket > summary .chev {
+    color: #9CA3AF;
+    transition: transform 0.15s ease;
+    flex-shrink: 0;
+  }
+  .bucket[open] > summary .chev { transform: rotate(90deg); }
+</style>
+
 <script>
   const dashSearch = document.getElementById('dash-search')
   dashSearch?.addEventListener('input', () => {
@@ -166,6 +187,15 @@ const sourcesActive = run?.sources_checked || 0
       } else {
         el.style.display = 'none'
       }
+    })
+  })
+
+  document.querySelectorAll<HTMLDetailsElement>('.bucket').forEach(d => {
+    const key = `bucket:${d.dataset.bucket}`
+    const stored = localStorage.getItem(key)
+    if (stored === 'closed') d.open = false
+    d.addEventListener('toggle', () => {
+      localStorage.setItem(key, d.open ? 'open' : 'closed')
     })
   })
 </script>
