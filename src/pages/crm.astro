@@ -1,8 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro'
+import ScoreBadge from '../components/ScoreBadge.astro'
 import { supabase } from '../lib/supabase.js'
 
-// Fetch all leads with their note + contact counts (as joined counts via separate queries kept simple)
 const { data: leadsRaw } = await supabase
   .from('leads')
   .select('*, lead_notes(id), lead_contacts(id)')
@@ -15,7 +15,7 @@ const leads = (leadsRaw || []).map((l: any) => ({
   contact_count: (l.lead_contacts || []).length,
 }))
 
-// "Touched" = Tom has engaged: status moved off 'new', or a note/contact added, or a next-action/contract value recorded
+// "Touched" = Tom has engaged
 const touched = leads.filter((l: any) =>
   (l.status && l.status !== 'new') ||
   l.note_count > 0 ||
@@ -26,95 +26,117 @@ const touched = leads.filter((l: any) =>
 
 const statuses = ['new', 'tracking', 'pursuing', 'market-intel', 'won', 'lost', 'no-bid', 'dismissed', 'stale']
 const statusLabel = (s: string) => s === 'market-intel' ? 'Market Intel' : s === 'no-bid' ? 'No-bid' : (s.charAt(0).toUpperCase() + s.slice(1))
-
 const priorities = ['high', 'medium', 'low']
 
 function fmtDate(d: string | null) {
   if (!d) return ''
   try { return new Date(d).toISOString().slice(0, 10) } catch { return '' }
 }
+
+// Per-status counts for header chips
+const statusCounts: Record<string, number> = Object.fromEntries(statuses.map(s => [s, 0]))
+for (const l of touched) {
+  if (l.status && statusCounts[l.status] !== undefined) statusCounts[l.status]++
+}
 ---
 
-<Layout title="Tom's CRM">
-  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
-    <div>
-      <h1 class="text-primary-heading">Tom's CRM</h1>
-      <p style="font-size: 13px; color: #6B7280; margin-top: 4px;">Every lead you've touched — status, notes, contacts, next action. Click a cell to edit inline.</p>
-    </div>
+<Layout title="Tom's CRM" wide={true}>
+  <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; flex-wrap: wrap; gap: 12px;">
+    <h1 class="text-primary-heading">Tom's CRM</h1>
     <div style="font-size: 13px; color: #6B7280;">{touched.length} touched · {leads.length} total</div>
   </div>
+  <p style="font-size: 13px; color: #6B7280; margin-bottom: 20px;">Every lead you've engaged with. Click a cell to edit inline — it auto-saves.</p>
 
-  <!-- Filter / search -->
-  <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
-    <input type="text" id="crm-search" class="form-input" placeholder="Search..." style="max-width: 300px;" />
-    <select id="crm-status-filter" class="filter-select">
-      <option value="all">All statuses</option>
-      {statuses.map(s => <option value={s}>{statusLabel(s)}</option>)}
-    </select>
+  <!-- Filter bar -->
+  <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;">
+    <input type="text" id="crm-search" class="form-input" placeholder="Search project, address, GC..." style="max-width: 320px; flex: 1; min-width: 200px;" />
+    <button class="crm-status-chip active" data-status="all">All <span class="chip-count">{touched.length}</span></button>
+    {statuses.filter(s => statusCounts[s] > 0).map(s => (
+      <button class={`crm-status-chip status-chip-${s}`} data-status={s}>
+        <span class:list={['status-dot', `status-${s}`]} style="width: 6px; height: 6px;"></span>
+        {statusLabel(s)}
+        <span class="chip-count">{statusCounts[s]}</span>
+      </button>
+    ))}
   </div>
 
   {touched.length > 0 ? (
-    <div class="card-surface" style="padding: 0; overflow-x: auto;">
-      <table class="crm-table">
-        <thead>
-          <tr>
-            <th>Project</th>
-            <th>Status</th>
-            <th>Priority</th>
-            <th>Next Action</th>
-            <th>Next Date</th>
-            <th>Contract $</th>
-            <th>Notes</th>
-            <th>Contacts</th>
-            <th>Updated</th>
-          </tr>
-        </thead>
-        <tbody>
-          {touched.map((lead: any) => (
-            <tr
-              class="crm-row"
-              data-lead-id={lead.id}
-              data-status={lead.status || 'new'}
-              data-search={[lead.project_name, lead.address, lead.gc_name, lead.project_type].filter(Boolean).join(' ').toLowerCase()}
-            >
-              <td class="project-cell">
-                <a href={`/leads/${lead.id}`} style="color: #111827; font-weight: 600; text-decoration: none;">
-                  {lead.project_name}
-                </a>
-                <div style="font-size: 11px; color: #9CA3AF; margin-top: 2px;">{lead.address || lead.source_name || '—'}</div>
-              </td>
-              <td>
-                <select class="crm-edit" data-field="status" data-id={lead.id}>
-                  {statuses.map(s => (
-                    <option value={s} selected={lead.status === s}>{statusLabel(s)}</option>
-                  ))}
-                </select>
-              </td>
-              <td>
-                <select class="crm-edit" data-field="priority" data-id={lead.id}>
-                  {priorities.map(p => (
-                    <option value={p} selected={(lead.priority || 'medium') === p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
-                  ))}
-                </select>
-              </td>
-              <td>
-                <input type="text" class="crm-edit" data-field="next_action" data-id={lead.id} value={lead.next_action || ''} placeholder="—" />
-              </td>
-              <td>
-                <input type="date" class="crm-edit" data-field="next_action_date" data-id={lead.id} value={fmtDate(lead.next_action_date)} />
-              </td>
-              <td>
-                <input type="text" class="crm-edit" data-field="contract_value" data-id={lead.id} value={lead.contract_value || ''} placeholder="—" style="width: 100px;" />
-              </td>
-              <td style="text-align: center; font-size: 13px; color: #6B7280;">{lead.note_count || 0}</td>
-              <td style="text-align: center; font-size: 13px; color: #6B7280;">{lead.contact_count || 0}</td>
-              <td style="font-size: 12px; color: #9CA3AF; white-space: nowrap;">
-                {lead.updated_at ? new Date(lead.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
-              </td>
+    <div class="card-surface" style="padding: 0; overflow: hidden;">
+      <div style="overflow-x: auto;">
+        <table class="crm-table">
+          <colgroup>
+            <col style="width: 44px;" />
+            <col />
+            <col style="width: 148px;" />
+            <col style="width: 110px;" />
+            <col style="width: 240px;" />
+            <col style="width: 140px;" />
+            <col style="width: 120px;" />
+            <col style="width: 72px;" />
+            <col style="width: 90px;" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Score</th>
+              <th>Project</th>
+              <th>Status</th>
+              <th>Priority</th>
+              <th>Next Action</th>
+              <th>Next Date</th>
+              <th>Contract $</th>
+              <th title="Notes / Contacts">N / C</th>
+              <th>Updated</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {touched.map((lead: any) => (
+              <tr
+                class="crm-row"
+                data-lead-id={lead.id}
+                data-status={lead.status || 'new'}
+                data-search={[lead.project_name, lead.address, lead.gc_name, lead.project_type].filter(Boolean).join(' ').toLowerCase()}
+              >
+                <td style="text-align: center;"><ScoreBadge score={lead.actionability_score || 0} /></td>
+                <td class="project-cell">
+                  <a href={`/leads/${lead.id}`} class="project-link">{lead.project_name}</a>
+                  <div class="project-sub">{lead.address || lead.source_name || '—'}</div>
+                </td>
+                <td>
+                  <select class={`crm-edit crm-status-select status-select-${lead.status || 'new'}`} data-field="status" data-id={lead.id}>
+                    {statuses.map(s => (
+                      <option value={s} selected={lead.status === s}>{statusLabel(s)}</option>
+                    ))}
+                  </select>
+                </td>
+                <td>
+                  <select class={`crm-edit crm-priority-select priority-${lead.priority || 'medium'}`} data-field="priority" data-id={lead.id}>
+                    {priorities.map(p => (
+                      <option value={p} selected={(lead.priority || 'medium') === p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
+                    ))}
+                  </select>
+                </td>
+                <td>
+                  <input type="text" class="crm-edit" data-field="next_action" data-id={lead.id} value={lead.next_action || ''} placeholder="—" />
+                </td>
+                <td>
+                  <input type="date" class="crm-edit" data-field="next_action_date" data-id={lead.id} value={fmtDate(lead.next_action_date)} />
+                </td>
+                <td>
+                  <input type="text" class="crm-edit" data-field="contract_value" data-id={lead.id} value={lead.contract_value || ''} placeholder="—" />
+                </td>
+                <td style="text-align: center; font-size: 12px; color: #6B7280; white-space: nowrap;">
+                  <span title="Notes" style="color: #374151; font-weight: 500;">{lead.note_count || 0}</span>
+                  <span style="color: #D1D5DB; margin: 0 3px;">/</span>
+                  <span title="Contacts" style="color: #374151; font-weight: 500;">{lead.contact_count || 0}</span>
+                </td>
+                <td style="font-size: 12px; color: #9CA3AF; white-space: nowrap;">
+                  {lead.updated_at ? new Date(lead.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   ) : (
     <div class="card-surface">
@@ -125,7 +147,7 @@ function fmtDate(d: string | null) {
     </div>
   )}
 
-  <div id="crm-toast" style="display: none; position: fixed; bottom: 24px; right: 24px; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; z-index: 50;"></div>
+  <div id="crm-toast" style="display: none; position: fixed; bottom: 24px; right: 24px; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; z-index: 50; box-shadow: 0 8px 16px rgba(0,0,0,0.15);"></div>
 </Layout>
 
 <style>
@@ -133,6 +155,7 @@ function fmtDate(d: string | null) {
     width: 100%;
     border-collapse: collapse;
     font-size: 13px;
+    table-layout: fixed;
   }
   .crm-table thead th {
     text-align: left;
@@ -145,33 +168,51 @@ function fmtDate(d: string | null) {
     background: #F9FAFB;
     border-bottom: 1px solid #E5E7EB;
     white-space: nowrap;
+    position: sticky;
+    top: 0;
   }
   .crm-table tbody td {
-    padding: 8px 12px;
+    padding: 8px 10px;
     border-bottom: 1px solid #F3F4F6;
     vertical-align: middle;
+    overflow: hidden;
   }
-  .crm-table tbody tr:hover {
-    background: #FAFBFC;
+  .crm-table tbody tr:hover { background: #FAFBFC; }
+
+  .project-cell { min-width: 0; }
+  .project-link {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #111827;
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .crm-table .project-cell {
-    min-width: 240px;
-    max-width: 320px;
+  .project-link:hover { color: #1E2761; text-decoration: underline; }
+  .project-sub {
+    font-size: 11px;
+    color: #9CA3AF;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
+
+  /* Inline-editable cells */
   .crm-edit {
     width: 100%;
-    padding: 4px 8px;
+    padding: 5px 8px;
     font-size: 13px;
     border: 1px solid transparent;
     background: transparent;
-    border-radius: 4px;
+    border-radius: 5px;
     color: #374151;
     font-family: inherit;
+    box-sizing: border-box;
   }
-  .crm-edit:hover {
-    border-color: #E5E7EB;
-    background: white;
-  }
+  .crm-edit:hover { border-color: #E5E7EB; background: white; }
   .crm-edit:focus {
     outline: none;
     border-color: #1E2761;
@@ -181,37 +222,88 @@ function fmtDate(d: string | null) {
   .crm-edit.saving { background: #FEF3C7; border-color: #FCD34D; }
   .crm-edit.saved { background: #D1FAE5; border-color: #6EE7B7; }
   .crm-edit.error { background: #FEE2E2; border-color: #FCA5A5; }
-  .filter-select {
+
+  /* Status colour-coded select backgrounds */
+  .crm-status-select {
+    font-weight: 600;
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 22px;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 3l4 4 4-4' stroke='%23374151' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+  }
+  .status-select-new { background-color: #EFF6FF; color: #1E40AF; border-color: #DBEAFE; }
+  .status-select-tracking { background-color: #FFFBEB; color: #92400E; border-color: #FDE68A; }
+  .status-select-pursuing { background-color: #F5F3FF; color: #6D28D9; border-color: #DDD6FE; }
+  .status-select-market-intel { background-color: #F0F9FF; color: #075985; border-color: #BAE6FD; }
+  .status-select-won { background-color: #ECFDF5; color: #065F46; border-color: #A7F3D0; }
+  .status-select-lost { background-color: #FEF2F2; color: #991B1B; border-color: #FECACA; }
+  .status-select-no-bid { background-color: #F9FAFB; color: #374151; border-color: #E5E7EB; }
+  .status-select-dismissed { background-color: #F3F4F6; color: #6B7280; border-color: #E5E7EB; }
+  .status-select-stale { background-color: #F3F4F6; color: #6B7280; border-color: #E5E7EB; }
+
+  /* Priority select */
+  .crm-priority-select {
+    font-weight: 600;
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 22px;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 3l4 4 4-4' stroke='%23374151' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+  }
+  .priority-high { color: #DC2626; }
+  .priority-medium { color: #92400E; }
+  .priority-low { color: #6B7280; }
+
+  /* Status filter chips */
+  .crm-status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     padding: 5px 12px;
-    border-radius: 6px;
-    font-size: 13px;
+    border-radius: 999px;
+    font-size: 12px;
     font-weight: 500;
-    border: 1px solid #D1D5DB;
+    border: 1px solid #E5E7EB;
     background: white;
     cursor: pointer;
     color: #374151;
+    transition: all 0.1s ease;
   }
+  .crm-status-chip:hover { background: #F9FAFB; border-color: #D1D5DB; }
+  .crm-status-chip.active { background: #1E2761; color: white; border-color: #1E2761; }
+  .crm-status-chip.active .chip-count { color: rgba(255,255,255,0.7); }
+  .chip-count { font-size: 11px; color: #9CA3AF; font-weight: 600; }
 </style>
 
 <script>
   const rows = Array.from(document.querySelectorAll('.crm-row'))
   const search = document.getElementById('crm-search') as HTMLInputElement | null
-  const statusFilter = document.getElementById('crm-status-filter') as HTMLSelectElement | null
+  const chips = Array.from(document.querySelectorAll<HTMLButtonElement>('.crm-status-chip'))
   const toast = document.getElementById('crm-toast')!
+  let activeStatus = 'all'
 
   function applyFilters() {
     const q = (search?.value || '').toLowerCase().trim()
-    const s = statusFilter?.value || 'all'
     rows.forEach(row => {
       const el = row as HTMLElement
       const matchSearch = !q || (el.dataset.search || '').includes(q)
-      const matchStatus = s === 'all' || el.dataset.status === s
+      const matchStatus = activeStatus === 'all' || el.dataset.status === activeStatus
       ;(el as HTMLTableRowElement).style.display = (matchSearch && matchStatus) ? '' : 'none'
     })
   }
 
   search?.addEventListener('input', applyFilters)
-  statusFilter?.addEventListener('change', applyFilters)
+  chips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      chips.forEach(c => c.classList.remove('active'))
+      chip.classList.add('active')
+      activeStatus = chip.dataset.status || 'all'
+      applyFilters()
+    })
+  })
 
   function showToast(msg: string, ok = true) {
     toast.textContent = msg
@@ -246,7 +338,19 @@ function fmtDate(d: string | null) {
       el.classList.remove('saving')
       el.classList.add('saved')
       setTimeout(() => el.classList.remove('saved'), 1200)
-      if (field === 'status' && row) row.dataset.status = value || ''
+
+      // Update row dataset + status-select colouring
+      if (field === 'status' && row) {
+        row.dataset.status = value || ''
+        const cls = Array.from(el.classList).filter(c => !c.startsWith('status-select-'))
+        cls.push(`status-select-${value || 'new'}`)
+        el.className = cls.join(' ')
+      }
+      if (field === 'priority') {
+        const cls = Array.from(el.classList).filter(c => !c.startsWith('priority-'))
+        cls.push(`priority-${value || 'medium'}`)
+        el.className = cls.join(' ')
+      }
       applyFilters()
     } catch (err: any) {
       el.classList.remove('saving')
@@ -260,13 +364,11 @@ function fmtDate(d: string | null) {
   })
 
   document.querySelectorAll<HTMLInputElement>('input.crm-edit').forEach(el => {
-    el.addEventListener('change', () => saveField(el))
+    let dirty = false
+    el.addEventListener('input', () => { dirty = true })
+    el.addEventListener('change', () => { dirty = false; saveField(el) })
     el.addEventListener('blur', () => {
-      if (el.dataset.dirty === '1') {
-        el.dataset.dirty = '0'
-        saveField(el)
-      }
+      if (dirty) { dirty = false; saveField(el) }
     })
-    el.addEventListener('input', () => { el.dataset.dirty = '1' })
   })
 </script>
