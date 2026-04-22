@@ -101,8 +101,9 @@ function formatItem(item) {
     block += `> **Action:** ${item.action_item}\n\n`
   }
 
-  if (item.url || item.originalItem?.url) {
-    block += `[Source](${item.url || item.originalItem?.url})\n\n`
+  const sourceUrl = item.originalItem?.url || item.url
+  if (sourceUrl) {
+    block += `[Source](${sourceUrl})\n\n`
   }
 
   block += `---\n\n`
@@ -213,7 +214,7 @@ function emailItemCard(item, bgColor) {
     </div>
     ${item.why_it_matters ? `<p style="font-size:13px; color:#374151; margin:8px 0 4px;">${item.why_it_matters}</p>` : ''}
     ${item.action_item ? `<p style="font-size:13px; color:#1E2761; font-weight:600; margin:4px 0;"> Action: ${item.action_item}</p>` : ''}
-    ${item.url ? `<a href="${item.url}" style="font-size:12px; color:#4A6FA5;">View source</a>` : ''}
+    ${(item.originalItem?.url || item.url) ? `<a href="${item.originalItem?.url || item.url}" style="font-size:12px; color:#4A6FA5;">View source</a>` : ''}
   </div>`
 }
 

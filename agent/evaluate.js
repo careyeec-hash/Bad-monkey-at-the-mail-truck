@@ -74,6 +74,7 @@ Scoring impact: ${p.distressedSignals.scoringImpact}`
   prompt += `
 
 For each item provide:
+- idx: ECHO THE EXACT idx FIELD FROM THE INPUT ITEM. This is mandatory. Every result MUST include idx. Do not invent, renumber, or omit idx values.
 - actionability_score (1-10)
 - category: permit | rfp | project | market | competitive | economic
 - project_type: multifamily | commercial | institutional | industrial | hospitality | mixed-use | infrastructure | unknown
@@ -175,8 +176,10 @@ Sort by actionability_score descending.`
 }
 
 async function evaluateBatch(items, systemPrompt) {
-  const itemData = items.map(item => ({
-    url: item.url,
+  // Attach a stable idx to every item so we can join results back reliably,
+  // even when Opus reorders, rewrites titles, or drops/hallucinates URLs.
+  const itemData = items.map((item, idx) => ({
+    idx,
     title: item.title,
     source: item.source,
     sourceCategory: item.sourceCategory,
@@ -186,14 +189,15 @@ async function evaluateBatch(items, systemPrompt) {
     permitData: item.permitData || null
   }))
 
+  const instruction = `Evaluate these ${items.length} items. Each item has an "idx" field — YOU MUST echo that exact idx back in every result object so we can join scoring back to the source. Do not invent, reorder, or omit idx values.
+
+${JSON.stringify(itemData, null, 2)}`
+
   const message = await client.messages.create({
     model: 'claude-opus-4-6',
     max_tokens: 8192,
     system: systemPrompt,
-    messages: [{
-      role: 'user',
-      content: `Evaluate these ${items.length} items:\n\n${JSON.stringify(itemData, null, 2)}`
-    }]
+    messages: [{ role: 'user', content: instruction }]
   })
 
   let text = message.content[0].text
@@ -204,9 +208,9 @@ async function evaluateBatch(items, systemPrompt) {
   } catch {
     console.log('  [Evaluate] Warning: could not parse Opus response, creating stubs for manual review')
     console.log('  [Evaluate] Raw response:', text.slice(0, 300))
-    // Keep-on-failure: create stub leads with score=0 and error flag so nothing gets silently dropped
-    return items.map(item => ({
-      url: item.url,
+    // Keep-on-failure: create stub results that carry idx so crm handoff stays correct
+    return items.map((item, idx) => ({
+      idx,
       title: item.title,
       actionability_score: 0,
       category: item.sourceCategory || 'unknown',
@@ -259,21 +263,38 @@ export default async function evaluate(items, profileName) {
 
     const results = await evaluateBatch(batch, systemPrompt)
 
-    // Merge original item data with evaluation results
-    for (let j = 0; j < results.length; j++) {
-      const result = results[j]
-      // Match by URL first, then title, then by position (Opus often rewrites titles/drops URLs)
-      const originalItem = batch.find(item => item.url && item.url === result.url)
-        || batch.find(item => item.title && item.title === result.title)
-        || batch[j] || null
-      // Ensure source URL is always carried forward from the original scraped item
-      if (originalItem?.url && !result.url) {
-        result.url = originalItem.url
+    // Merge evaluation results with the original scraped items.
+    // Match STRICTLY by idx — Opus reorders (sort-by-score) and rewrites titles,
+    // so URL/title/positional matching produced cross-contamination between items
+    // (wrong source URLs on leads). idx is a number Opus can echo but can't fuzz.
+    const used = new Set()
+    for (const result of results) {
+      const idx = Number.isInteger(result?.idx) ? result.idx : -1
+      const originalItem = idx >= 0 && idx < batch.length ? batch[idx] : null
+
+      if (!originalItem) {
+        console.log(`  [Evaluate] Warning: dropping result with invalid idx=${result?.idx} ("${(result?.one_line || result?.title || '').slice(0, 60)}") — cannot match to scraped item`)
+        continue
       }
-      allResults.push({
-        ...result,
-        originalItem
-      })
+      if (used.has(idx)) {
+        console.log(`  [Evaluate] Warning: duplicate idx=${idx} from Opus — keeping first, dropping "${(result?.one_line || '').slice(0, 60)}"`)
+        continue
+      }
+      used.add(idx)
+
+      // Always take the source URL from the scraper, never from Opus output.
+      // Opus sometimes echoes URLs from other items in the same batch (hallucination),
+      // which is how wrong source links ended up on leads.
+      result.url = originalItem.url || null
+
+      allResults.push({ ...result, originalItem })
+    }
+
+    // Log any scraped items Opus silently dropped so nothing vanishes quietly.
+    for (let j = 0; j < batch.length; j++) {
+      if (!used.has(j)) {
+        console.log(`  [Evaluate] Warning: Opus did not return a result for batch idx=${j} ("${(batch[j]?.title || '').slice(0, 60)}")`)
+      }
     }
   }
 

@@ -58,7 +58,8 @@ export async function processLeads(evaluatedItems, profile) {
   for (const item of qualifiedItems) {
     const address = item.permitData?.address || item.originalItem?.permitData?.address || ''
     const normalized = normalizeAddress(address)
-    const sourceUrl = item.url || item.originalItem?.url || null
+    // Prefer the scraper's URL; Opus-echoed URLs can cross-contaminate batches.
+    const sourceUrl = item.originalItem?.url || item.url || null
 
     // Dedup strategy:
     //   1. If we have a real address, match on normalized_address (permit items)
@@ -101,7 +102,7 @@ export async function processLeads(evaluatedItems, profile) {
         lead_id: leadId,
         briefing_date: new Date().toISOString().split('T')[0],
         update_text: `Agent update: ${item.one_line || 'New information found'}. Score: ${item.actionability_score}/10.${newScore > oldScore ? ` (upgraded from ${oldScore})` : ''}`,
-        source_url: item.url || item.originalItem?.url || null
+        source_url: sourceUrl
       })
       updated++
     } else {
@@ -136,7 +137,8 @@ async function createLead(item, profile) {
     source_type: 'agent',
     source_name: item.originalItem?.source || item.source || null,
     source_category: item.category || item.originalItem?.sourceCategory || null,
-    source_url: item.url || item.originalItem?.url || item.originalItem?.link || null,
+    // Always prefer the scraper's URL. Opus's echoed URL is untrusted.
+    source_url: item.originalItem?.url || item.originalItem?.link || item.url || null,
     briefing_date: new Date().toISOString().split('T')[0],
     actionability_score: item.actionability_score,
     bristlecone_fit: item.bristlecone_fit || null,
