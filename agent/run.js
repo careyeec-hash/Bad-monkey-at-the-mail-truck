@@ -1,12 +1,16 @@
-import { config } from 'dotenv'
+// MUST be the very first import. Loads .env before any sibling import causes
+// a module to instantiate `new Anthropic()` at top-level. ES imports are
+// hoisted and run in source order, so a `config()` function call placed AFTER
+// `import ingest from './ingest.js'` would execute too late: prefilter.js,
+// evaluate.js, and planning-agendas.js would already have built their clients
+// against an empty process.env.ANTHROPIC_API_KEY. See load-env.js for details.
+import './load-env.js'
+
 import { readFileSync } from 'fs'
-import { join, dirname, resolve } from 'path'
+import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-
-// Load .env relative to agent directory, not cwd (Lesson: .env path assumptions break in CI)
-config({ path: resolve(__dirname, '.env') })
 
 // Validate required env vars before doing anything
 const REQUIRED_ENV = ['ANTHROPIC_API_KEY', 'SUPABASE_URL', 'SUPABASE_SERVICE_KEY']

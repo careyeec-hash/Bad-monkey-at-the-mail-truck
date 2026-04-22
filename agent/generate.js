@@ -221,10 +221,12 @@ function emailItemCard(item, bgColor) {
 // --- Urgent alert email (9+ with deadline, any day) ---
 
 export function generateUrgentAlert(evaluatedItems, profile) {
-  const urgent = evaluatedItems.filter(i =>
-    i.actionability_score >= 9 &&
-    (i.project_stage === 'bidding' || i.enrichment_needed?.includes('bid deadline'))
-  )
+  // Tom's intake said "never too early, never too late" — so a 9+ lead is worth
+  // a same-day alert regardless of project stage. The previous filter required
+  // bidding-stage or a bid-deadline tag, which would have suppressed Halo Vista
+  // (master-plan stage, score 9) — exactly the kind of lead Tom said he'd forward.
+  const alertThreshold = profile.alertThreshold ?? 9
+  const urgent = evaluatedItems.filter(i => (i.actionability_score || 0) >= alertThreshold)
 
   if (urgent.length === 0) return null
 

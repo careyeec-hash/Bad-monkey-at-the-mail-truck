@@ -1,0 +1,38 @@
+{
+  "cityName": "City of Phoenix (PDD Online)",
+  "portalUrl": "https://apps-secure.phoenix.gov/PDD/Search/Permits",
+  "isAccela": false,
+  "platform": "aspnet-kendo",
+  "searchParams": {
+    "dateRangeDays": 14
+  },
+  "selectors": {
+    "searchForm": {
+      "#txtPermitNumber": "%"
+    },
+    "submitButton": "#btnSearch",
+    "waitAfterSubmit": "#Grid tbody tr",
+    "resultsContainer": "#Grid",
+    "rowSelector": "#Grid tbody tr:not(.t-no-data)",
+    "columns": {
+      "permitNumber": "td:nth-child(1)",
+      "issuedDate": "td:nth-child(2)",
+      "status": "td:nth-child(3)",
+      "address": "td:nth-child(4)",
+      "professional": "td:nth-child(5)",
+      "description": "td:nth-child(6)"
+    },
+    "detailLink": "td:nth-child(1) a",
+    "nextPage": ".k-pager-wrap .k-i-arrow-e"
+  },
+  "filters": {
+    "excludeStatuses": ["SHAP"],
+    "excludeDescriptions": ["single family", "single-family", "sfr", "pool", "fence", "solar", "reroof", "re-roof", "water heater", "photovoltaic", "patio cover"],
+    "commercialPrefixes": ["COM", "CTR", "IND", "MUL", "MIX", "HTL", "HOS", "OFF", "RET", "WAR", "INS", "CHU", "SCH", "PLN"],
+    "commercialKeywords": ["commercial", "multi", "apartment", "hotel", "office", "retail", "warehouse", "industrial", "mixed use", "restaurant", "medical", "hospital", "church", "school", "tenant improvement"]
+  },
+  "maxPages": 5,
+  "timeout": 60000,
+  "active": true,
+  "notes": "PDD Online uses ASP.NET + Kendo Grid. AJAX endpoint requires real browser session. Excludes SHAP-status permits (migrated to SHAPE PHX). Wildcard % in permit number returns all recent permits."
+}

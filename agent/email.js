@@ -37,7 +37,7 @@ export async function sendDigestEmail(emailData) {
 
   try {
     const { data, error } = await client.emails.send({
-      from: 'Bad Monkey <monkey@badmonkeymailtruck.com>',
+      from: (process.env.EMAIL_FROM || 'Bad Monkey <onboarding@resend.dev>'),
       to: recipients.map(r => r.email),
       subject,
       html
@@ -69,7 +69,7 @@ export async function sendUrgentAlert(alertData) {
 
   try {
     const { data, error } = await client.emails.send({
-      from: 'Bad Monkey <monkey@badmonkeymailtruck.com>',
+      from: (process.env.EMAIL_FROM || 'Bad Monkey <onboarding@resend.dev>'),
       to: recipients.map(r => r.email),
       subject,
       html

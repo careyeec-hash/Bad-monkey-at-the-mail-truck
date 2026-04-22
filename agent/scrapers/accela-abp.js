@@ -1,25 +1,57 @@
-// Generic Accela ABP scraper — works across all Accela permit portals
-// Uses Agent Browser Protocol (ABP) for JavaScript-rendered pages
-// Each city has its own config in abp-config/{city}.json
+// Generic ABP scraper — works across Accela, PDD, and Salesforce permit portals
+// Uses Agent Browser Protocol (ABP) via MCP JSON-RPC
+// Each city/portal has its own config in abp-config/{name}.json
+// Config defines: URL, search form selectors, result table selectors, column mapping
 
 import { readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import * as cheerio from 'cheerio'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-const ABP_BASE = `http://localhost:${process.env.ABP_PORT || 8222}`
+const ABP_PORT = process.env.ABP_PORT || 8222
+const ABP_MCP_URL = `http://localhost:${ABP_PORT}/mcp`
 
-async function abpRequest(endpoint, body) {
-  const res = await fetch(`${ABP_BASE}${endpoint}`, {
+let mcpIdCounter = 0
+
+async function mcpCall(toolName, args) {
+  const res = await fetch(ABP_MCP_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      method: 'tools/call',
+      params: { name: toolName, arguments: args || {} },
+      id: ++mcpIdCounter
+    })
   })
   if (!res.ok) {
-    throw new Error(`ABP ${endpoint} returned ${res.status}`)
+    throw new Error(`ABP MCP returned ${res.status}`)
   }
-  return res.json()
+  const result = await res.json()
+  if (result.error) {
+    throw new Error(`ABP error: ${result.error.message || JSON.stringify(result.error)}`)
+  }
+  return result.result
+}
+
+function extractText(mcpResult) {
+  const content = mcpResult?.content?.[0]
+  if (!content) return ''
+  if (content.type === 'text') {
+    try {
+      const parsed = JSON.parse(content.text)
+      return parsed.text || content.text
+    } catch {
+      return content.text
+    }
+  }
+  return content.text || ''
+}
+
+function extractValue(mcpResult) {
+  return mcpResult?.value || mcpResult?.content?.[0]?.text || ''
 }
 
 export default async function scrapeAccela(source) {
@@ -43,112 +75,256 @@ export default async function scrapeAccela(source) {
     return []
   }
 
-  // Check if ABP is running
+  // Check if ABP is running via MCP
   try {
-    const healthRes = await fetch(`${ABP_BASE}/health`, { signal: AbortSignal.timeout(3000) })
-    if (!healthRes.ok) throw new Error('ABP not healthy')
+    await mcpCall('browser_get_status')
   } catch {
-    console.log(`  [ABP: ${source.name}] ABP not running on port ${process.env.ABP_PORT || 8222} — skipping`)
+    console.log(`  [ABP: ${source.name}] ABP not running on port ${ABP_PORT} — skipping`)
     return []
   }
 
   const timeout = config.timeout || 60000
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), timeout)
 
   try {
-    // 1. Create a new browser session
-    const session = await abpRequest('/session/create', {})
-    const sessionId = session.sessionId
+    // 1. Navigate to the portal
+    await mcpCall('browser_navigate', { url: config.portalUrl })
+    await new Promise(r => setTimeout(r, 3000))
+    await mcpCall('browser_wait', {})
 
-    try {
-      // 2. Navigate to the Accela portal
-      await abpRequest('/session/navigate', {
-        sessionId,
-        url: config.portalUrl
+    // 1b. Log in if auth is configured and we're not already authenticated
+    if (config.auth) {
+      await ensureAuthenticated(config, source)
+    }
+
+    // 2. Fill search form fields
+    const formFields = config.selectors?.searchForm || {}
+    for (const [selector, value] of Object.entries(formFields)) {
+      if (!selector || !value) continue
+      await mcpCall('browser_javascript', {
+        expression: `document.querySelector('${selector}').value = ${JSON.stringify(value)};`
+      })
+    }
+
+    // 3. Click submit button
+    if (config.selectors?.submitButton) {
+      await mcpCall('browser_javascript', {
+        expression: `document.querySelector('${config.selectors.submitButton}').click();`
       })
 
-      // 3. Wait for page to settle
-      await abpRequest('/session/wait', {
-        sessionId,
-        timeout: 10000
+      // Wait for results to load
+      await new Promise(r => setTimeout(r, 5000))
+      await mcpCall('browser_wait', {})
+    }
+
+    // 4. Extract results (with pagination)
+    const allItems = []
+    const maxPages = config.maxPages || 1
+
+    for (let page = 0; page < maxPages; page++) {
+      // Get page HTML via JavaScript
+      const htmlResult = await mcpCall('browser_javascript', {
+        expression: config.selectors?.resultsContainer
+          ? `document.querySelector('${config.selectors.resultsContainer}')?.outerHTML || ''`
+          : 'document.body.innerHTML'
       })
+      const html = extractValue(htmlResult)
 
-      // 4. Fill search form if selectors are configured
-      if (config.selectors?.searchForm) {
-        for (const [selector, value] of Object.entries(config.selectors.searchForm)) {
-          await abpRequest('/session/fill', {
-            sessionId,
-            selector,
-            value
-          })
-        }
+      if (!html || html.length < 50) break
 
-        // Submit search
-        if (config.selectors.submitButton) {
-          await abpRequest('/session/click', {
-            sessionId,
-            selector: config.selectors.submitButton
-          })
+      const items = parseResults(html, config, source)
+      if (items.length === 0) break
 
-          await abpRequest('/session/wait', {
-            sessionId,
-            timeout: 15000
+      allItems.push(...items)
+      console.log(`  [ABP: ${config.cityName}] Page ${page + 1}: ${items.length} items`)
+
+      // Pagination
+      if (page < maxPages - 1 && config.selectors?.nextPage) {
+        try {
+          await mcpCall('browser_javascript', {
+            expression: `var btn = document.querySelector('${config.selectors.nextPage}'); if(btn && !btn.classList.contains('k-state-disabled')) btn.click(); else throw 'no-more';`
           })
+          await new Promise(r => setTimeout(r, 3000))
+          await mcpCall('browser_wait', {})
+        } catch {
+          break
         }
       }
-
-      // 5. Extract results from the page
-      const pageContent = await abpRequest('/session/content', {
-        sessionId
-      })
-
-      // 6. Parse results using configured selectors
-      const items = parseAccelaResults(pageContent.html || '', config)
-
-      console.log(`  [ABP: ${config.cityName}] ${items.length} permits extracted`)
-      return items
-
-    } finally {
-      // Always close the session
-      try {
-        await abpRequest('/session/close', { sessionId })
-      } catch { /* ignore cleanup errors */ }
     }
+
+    console.log(`  [ABP: ${config.cityName}] ${allItems.length} total permits extracted`)
+    return allItems
 
   } catch (err) {
-    if (err.name === 'AbortError') {
-      console.log(`  [ABP: ${config.cityName}] Timed out after ${timeout / 1000}s`)
-    } else {
-      console.log(`  [ABP: ${config.cityName}] Error: ${err.message}`)
-    }
+    console.log(`  [ABP: ${config.cityName}] Error: ${err.message}`)
     return []
-  } finally {
-    clearTimeout(timer)
   }
 }
 
-function parseAccelaResults(html, config) {
-  // When selectors are properly configured, this will parse the HTML table
-  // For now, return empty — selectors need to be determined per city via ABP testing
-  if (!config.selectors?.resultsTable) {
+async function ensureAuthenticated(config, source) {
+  const auth = config.auth
+  const username = auth.usernameEnv ? process.env[auth.usernameEnv] : null
+  const password = auth.passwordEnv ? process.env[auth.passwordEnv] : null
+
+  if (!username || !password) {
+    throw new Error(`auth configured but ${auth.usernameEnv}/${auth.passwordEnv} not set in env`)
+  }
+
+  if (auth.successIndicator) {
+    const already = await mcpCall('browser_javascript', {
+      expression: `!!document.querySelector(${JSON.stringify(auth.successIndicator)})`
+    })
+    if (extractValue(already) === true || extractValue(already) === 'true') {
+      return
+    }
+  }
+
+  console.log(`  [ABP: ${config.cityName}] Logging in as ${username}`)
+
+  if (auth.loginUrl && auth.loginUrl !== config.portalUrl) {
+    await mcpCall('browser_navigate', { url: auth.loginUrl })
+    await new Promise(r => setTimeout(r, 3000))
+    await mcpCall('browser_wait', {})
+  }
+
+  if (auth.preLoginClickSelector) {
+    await mcpCall('browser_javascript', {
+      expression: `document.querySelector(${JSON.stringify(auth.preLoginClickSelector)})?.click();`
+    })
+    await new Promise(r => setTimeout(r, 2000))
+    await mcpCall('browser_wait', {})
+  }
+
+  await mcpCall('browser_javascript', {
+    expression: `(() => {
+      const u = document.querySelector(${JSON.stringify(auth.usernameSelector)});
+      const p = document.querySelector(${JSON.stringify(auth.passwordSelector)});
+      if (!u || !p) throw new Error('login fields not found');
+      const setVal = (el, v) => {
+        const proto = Object.getPrototypeOf(el);
+        const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+        setter ? setter.call(el, v) : (el.value = v);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      setVal(u, ${JSON.stringify(username)});
+      setVal(p, ${JSON.stringify(password)});
+    })()`
+  })
+
+  await mcpCall('browser_javascript', {
+    expression: `document.querySelector(${JSON.stringify(auth.submitSelector)}).click();`
+  })
+
+  await new Promise(r => setTimeout(r, 5000))
+  await mcpCall('browser_wait', {})
+
+  if (auth.successIndicator) {
+    const ok = await mcpCall('browser_javascript', {
+      expression: `!!document.querySelector(${JSON.stringify(auth.successIndicator)})`
+    })
+    const value = extractValue(ok)
+    if (!(value === true || value === 'true')) {
+      throw new Error('login did not produce expected successIndicator')
+    }
+  }
+
+  // Return to the portal URL if login redirected elsewhere
+  await mcpCall('browser_navigate', { url: config.portalUrl })
+  await new Promise(r => setTimeout(r, 3000))
+  await mcpCall('browser_wait', {})
+}
+
+function parseResults(html, config, source) {
+  if (!config.selectors?.rowSelector || !config.selectors?.columns) {
     return []
   }
 
-  // TODO: Use cheerio to parse the HTML with config-defined selectors
-  // Each row becomes a standard item:
-  // {
-  //   title: "{type}: {description} — {address}",
-  //   url: link to permit detail,
-  //   source: "{config.cityName} Permits (Accela)",
-  //   sourceTier: 1,
-  //   sourceCategory: "permits",
-  //   date: permit_date,
-  //   summary: "Permit #{number} filed by {owner} ...",
-  //   rawContent: { full permit record },
-  //   type: "permit",
-  //   permitData: { permitNumber, address, description, owner, contractor, valuation, ... }
-  // }
+  const $ = cheerio.load(html)
+  const rows = $(config.selectors.rowSelector)
+  const items = []
+  const columns = config.selectors.columns
+  const filters = config.filters || {}
 
-  return []
+  rows.each((i, row) => {
+    const $row = $(row)
+
+    // Extract fields using configured column selectors
+    const raw = {}
+    for (const [field, selector] of Object.entries(columns)) {
+      if (!selector) continue
+      raw[field] = $row.find(selector).text().trim() || $row.find(selector).attr('title') || ''
+    }
+
+    // Extract detail link if configured
+    let detailUrl = null
+    if (config.selectors.detailLink) {
+      const href = $row.find(config.selectors.detailLink).attr('href')
+      if (href) {
+        detailUrl = href.startsWith('http') ? href : new URL(href, config.portalUrl).toString()
+      }
+    }
+
+    // Apply filters
+    const desc = (raw.description || '').toLowerCase()
+    const status = (raw.status || '').toUpperCase()
+    const permitNum = raw.permitNumber || ''
+
+    if (filters.excludeStatuses?.some(s => status === s.toUpperCase())) return
+    if (filters.excludeDescriptions?.some(t => desc.includes(t))) return
+
+    if (filters.commercialPrefixes || filters.commercialKeywords) {
+      const isCommercialPrefix = filters.commercialPrefixes?.some(p =>
+        permitNum.toUpperCase().startsWith(p)
+      )
+      const isCommercialKeyword = filters.commercialKeywords?.some(k =>
+        desc.includes(k)
+      )
+      if (!isCommercialPrefix && !isCommercialKeyword) return
+    }
+
+    const address = raw.address || ''
+    const description = raw.description || 'Building Permit'
+
+    items.push({
+      title: `${config.cityName} Permit ${permitNum}: ${description}`.slice(0, 200),
+      url: detailUrl || `${config.portalUrl}?permit=${encodeURIComponent(permitNum)}`,
+      source: source.name,
+      sourceTier: source.tier,
+      sourceCategory: source.category,
+      date: parseDate(raw.issuedDate),
+      summary: [
+        description,
+        address ? `Address: ${address}` : null,
+        raw.professional || raw.contractor ? `Professional: ${raw.professional || raw.contractor}` : null,
+        raw.owner ? `Owner: ${raw.owner}` : null,
+        raw.valuation ? `Valuation: ${raw.valuation}` : null,
+        status ? `Status: ${status}` : null,
+        `Permit: ${permitNum}`
+      ].filter(Boolean).join('. '),
+      rawContent: raw,
+      type: 'permit',
+      permitData: {
+        permitNumber: permitNum,
+        address,
+        description,
+        owner: raw.owner || null,
+        contractor: raw.contractor || raw.professional || null,
+        valuation: raw.valuation || null,
+        status: raw.status || null,
+        issuedDate: parseDate(raw.issuedDate),
+        city: config.cityName
+      }
+    })
+  })
+
+  return items
+}
+
+function parseDate(dateStr) {
+  if (!dateStr) return new Date().toISOString()
+  try {
+    const d = new Date(dateStr)
+    if (!isNaN(d.getTime())) return d.toISOString()
+  } catch {}
+  return new Date().toISOString()
 }

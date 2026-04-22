@@ -8,7 +8,12 @@ import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
 import fetchPhoenixPermits from './scrapers/phoenix-permits.js'
+import fetchPhoenixPDD from './scrapers/phoenix-pdd.js'
+import fetchMesaPermits from './scrapers/mesa-permits.js'
+import fetchTempePermits from './scrapers/tempe-permits.js'
 import fetchSamGov from './scrapers/sam-gov.js'
+import fetchLegistarMatters from './scrapers/legistar.js'
+import fetchAgendaFromIndex from './scrapers/agenda-index.js'
 import fetchRss from './scrapers/generic-rss.js'
 import scrapeAccela from './scrapers/accela-abp.js'
 import scrapePage from './scrapers/cheerio-scraper.js'
@@ -21,14 +26,21 @@ const SEEN_ITEMS_TTL_DAYS = 90
 // Map source types to their scraper functions
 const scrapers = {
   api: (source) => {
-    if (source.category === 'permit') return fetchPhoenixPermits(source)
     if (source.category === 'rfp') return fetchSamGov(source)
+    if (source.category === 'permit') {
+      if (source.scraper === 'mesa') return fetchMesaPermits(source)
+      if (source.scraper === 'tempe') return fetchTempePermits(source)
+      if (source.scraper === 'phoenix-pdd') return fetchPhoenixPDD(source)
+      return fetchPhoenixPermits(source)
+    }
+    if (source.category === 'planning') return fetchLegistarMatters(source)
     throw new Error(`Unknown API source category: ${source.category}`)
   },
   rss: fetchRss,
   abp: scrapeAccela,
   scrape: scrapePage,
-  pdf: parsePlanningAgendas
+  pdf: parsePlanningAgendas,
+  'agenda-index': fetchAgendaFromIndex
 }
 
 // --- Seen items with TTL support ---

@@ -6,29 +6,34 @@ import Anthropic from '@anthropic-ai/sdk'
 
 const client = new Anthropic()
 
-const SYSTEM_PROMPT = `You are a construction industry classifier for the Arizona market.
-For each item, determine if it is relevant to commercial construction,
-multifamily development, institutional building, or industrial
-construction in Arizona.
+const SYSTEM_PROMPT = `You are a construction lead classifier for the Arizona market. Bias toward KEEPING items that have any construction/development signal — Tom prefers to see 50 leads and quickly filter the 1-2 worth pursuing rather than miss something. Drop only the clearly irrelevant.
 
-KEEP items about:
-- Building permits (commercial, multifamily, institutional, industrial)
-- Construction project announcements, awards, ground-breakings
-- Developer/owner activity (land purchases, entitlements, site plans)
-- Construction RFPs, bids, procurement
-- General contractor news (awards, hires, expansions) in Arizona
-- Economic development driving construction (relocations, facilities, data centers, manufacturing plants)
-- Real estate transactions signaling future construction
-- Concrete industry developments in Arizona
+KEEP if the item touches ANY of these:
+- A specific named project, address, developer, owner, architect, or GC in Arizona
+- A construction RFP, bid solicitation, permit filing, planning/zoning case
+- A developer announcing activity, expansion, land purchase, or pipeline (even without a named project — developer signals matter)
+- A GC win, hire, expansion, acquisition, or capacity signal in Arizona (competitor intel is valuable)
+- Economic development that will drive construction: relocations, expansions, facilities, data centers, manufacturing plants, semiconductor fabs
+- Architecture firm news: project wins, hires, relocations, mergers (architects are one of Tom's three BD categories)
+- Adaptive reuse, redevelopment, or repositioning of existing buildings (these ARE construction projects)
+- Distressed, stalled, foreclosed, or "back on the market" projects
+- Major real estate transactions where the buyer has known development plans
+- Submarket activity reports for Tom's target corridors (Downtown PHX, Camelback, Tempe Town Lake, Scottsdale Airpark, I-17 industrial, West Valley)
+- Capital markets news where the financing is tied to a specific build (construction loan closings, EB-5 raises for projects)
+- TSMC, Intel, semiconductor, or large-employer expansion news (drives downstream construction demand)
 
-DROP items about:
-- Single-family residential (unless 50+ unit subdivision)
-- National news with no Arizona connection
-- General business news unrelated to construction
-- Restaurant openings, retail tenant announcements
-- Opinion pieces with no project specifics
-- Events, conferences, awards galas
-- Completed projects with no forward-looking element
+DROP only the clearly irrelevant:
+- Industry statistics, employment data, wage reports, market indices with no project anchor (e.g. "national construction employment up 26K")
+- "Top 5 / Best of / Year in Review" roundups that don't name specific buildable projects
+- Leasing announcements for ALREADY-COMPLETED buildings with no expansion/Phase 2 (e.g. "Park303 100% leased — Glendale" where the building already exists and is fully built)
+- Single-family residential (unless 50+ unit subdivision or master-planned community)
+- National news with zero Arizona connection
+- Restaurant menu launches, retail tenant move-ins to EXISTING spaces
+- Opinion pieces, op-eds, columnist takes with no project specifics
+- Events, conferences, awards galas, ribbon cuttings on long-completed work
+- Pure forecast / outlook / sentiment articles with no specific project, developer, or build mentioned
+
+When in doubt: KEEP. Opus will score it appropriately downstream. The cost of a marginal item reaching Opus is small; the cost of missing a real lead is high.
 
 For each item: { "url": string, "keep": boolean, "reason": string (max 10 words) }
 Respond as a JSON array. No markdown fences.`

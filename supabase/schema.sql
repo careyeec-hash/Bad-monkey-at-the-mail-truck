@@ -153,6 +153,54 @@ CREATE TABLE source_health (
 );
 
 -- ============================================
+-- ENRICHED_ORGANIZATIONS — cached firm-level enrichment
+-- Populated by agent/enrich.js after evaluation. Keyed on a normalized
+-- firm name so the same developer/architect across multiple leads only
+-- consumes Apollo credits once per TTL window.
+-- ============================================
+CREATE TABLE enriched_organizations (
+  id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  normalized_name TEXT NOT NULL UNIQUE,        -- lowercase, trimmed, suffix-stripped
+  display_name    TEXT NOT NULL,               -- original casing for UI
+  org_type        TEXT,                        -- developer, architect, gc, owner
+
+  -- Firmographics (from Apollo)
+  apollo_id       TEXT,
+  website         TEXT,
+  hq_city         TEXT,
+  hq_state        TEXT,
+  employee_count  INTEGER,
+  industry        TEXT,
+  founded_year    INTEGER,
+  linkedin_url    TEXT,
+
+  -- Synthesized intel (LLM output from Apollo + web context)
+  recent_projects JSONB,                       -- [{name, year, location, type}]
+  decision_makers JSONB,                       -- [{name, title, linkedin, email, phone}]
+  notes           TEXT,                        -- firm background synthesis
+
+  -- Cache management
+  source          TEXT DEFAULT 'apollo',       -- 'apollo', 'manual', 'web'
+  raw_payload     JSONB,                       -- full upstream response for debugging
+  enriched_at     TIMESTAMPTZ DEFAULT NOW(),
+  expires_at      TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '30 days'),
+
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_enriched_orgs_normalized ON enriched_organizations(normalized_name);
+CREATE INDEX idx_enriched_orgs_expires ON enriched_organizations(expires_at);
+
+-- Optional link from a contact back to the cached org row (lets the UI
+-- pull "Firm Background" without re-joining on name strings).
+ALTER TABLE lead_contacts ADD COLUMN organization_id UUID REFERENCES enriched_organizations(id) ON DELETE SET NULL;
+
+-- Track per-lead enrichment status so the agent doesn't re-enrich on every run.
+ALTER TABLE leads ADD COLUMN enriched_at TIMESTAMPTZ;
+ALTER TABLE leads ADD COLUMN enrichment_status TEXT;  -- 'pending', 'done', 'skipped', 'failed'
+
+-- ============================================
 -- Auto-update updated_at on leads
 -- ============================================
 CREATE OR REPLACE FUNCTION update_updated_at()

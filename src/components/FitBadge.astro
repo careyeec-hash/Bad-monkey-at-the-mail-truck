@@ -5,19 +5,24 @@ interface Props {
 
 const { fitType } = Astro.props
 
+// gc-scope is the implicit default (Bristlecone's primary track) and gets NO badge —
+// showing it on every lead made the UI scream concrete even when concrete wasn't relevant.
+// Only render a pill when fit_type is concrete-scope or both, which is the actual signal.
 const cls: Record<string, string> = {
-  'gc-scope': 'fit-gc',
   'concrete-scope': 'fit-concrete',
   'both': 'fit-both',
 }
 
 const labels: Record<string, string> = {
-  'gc-scope': 'GC Scope',
-  'concrete-scope': 'Concrete',
+  'concrete-scope': 'Concrete Sub',
   'both': 'GC + Concrete',
 }
+
+const showBadge = fitType && fitType !== 'gc-scope' && labels[fitType]
 ---
 
-<span class:list={['fit-pill', cls[fitType] || 'fit-gc']}>
-  {labels[fitType] || fitType}
-</span>
+{showBadge && (
+  <span class:list={['fit-pill', cls[fitType]]}>
+    {labels[fitType]}
+  </span>
+)}

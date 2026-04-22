@@ -67,11 +67,21 @@ Return as a JSON array. Only include items related to construction, development,
   })
 
   let agendaItems = []
+  const rawText = message.content[0].text
   try {
-    const text = message.content[0].text
+    // Haiku often wraps JSON in ```json ... ``` fences or adds a preamble.
+    // Strip fences first, then fall back to extracting the outermost [...] block.
+    let text = rawText.trim()
+    const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
+    if (fenceMatch) text = fenceMatch[1].trim()
+    if (!text.startsWith('[')) {
+      const start = text.indexOf('[')
+      const end = text.lastIndexOf(']')
+      if (start !== -1 && end > start) text = text.slice(start, end + 1)
+    }
     agendaItems = JSON.parse(text)
   } catch {
-    console.log(`  [PDF: ${source.name}] Failed to parse Claude response as JSON`)
+    console.log(`  [PDF: ${source.name}] Failed to parse Claude response as JSON. First 300 chars: ${rawText.slice(0, 300)}`)
     return []
   }
 

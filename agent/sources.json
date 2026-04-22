@@ -10,7 +10,20 @@
       "maxItemsPerRun": 50,
       "config": "phoenix-shapephx",
       "active": false,
-      "notes": "SHAPE PHX (Salesforce-based) launches April 13, 2026 replacing PDD Online. Do NOT build scraper until after launch. Check for API/RSS/export options first.",
+      "notes": "SHAPE PHX Release 3 (commercial) POSTPONED as of April 13, 2026. Portal works for residential permits. Search requires login. Individual permit pages are publicly accessible. Will activate once commercial search goes live.",
+      "lastSuccess": null,
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Phoenix PDD Online (Bridge)",
+      "type": "abp",
+      "tier": 1,
+      "category": "permit",
+      "sourceType": "snapshot",
+      "maxItemsPerRun": 100,
+      "config": "phoenix-pdd",
+      "active": false,
+      "notes": "PDD database fully migrated to SHAPE PHX as of April 13, 2026. All searches return empty. SHAPE PHX Release 3 (commercial) postponed — commercial apps redirected back to PDD for submission but data is gone.",
       "lastSuccess": null,
       "consecutiveFailures": 0
     },
@@ -23,7 +36,7 @@
       "sourceType": "time-series",
       "maxItemsPerRun": 30,
       "active": true,
-      "lastSuccess": "2026-04-03T04:51:29.663Z",
+      "lastSuccess": "2026-04-14T19:43:05.971Z",
       "consecutiveFailures": 0
     },
     {
@@ -35,7 +48,7 @@
       "sourceType": "time-series",
       "maxItemsPerRun": 10,
       "active": true,
-      "lastSuccess": "2026-04-03T04:51:30.215Z",
+      "lastSuccess": "2026-04-14T19:43:05.971Z",
       "consecutiveFailures": 0
     },
     {
@@ -47,7 +60,7 @@
       "sourceType": "time-series",
       "maxItemsPerRun": 10,
       "active": true,
-      "lastSuccess": "2026-04-03T04:51:30.642Z",
+      "lastSuccess": "2026-04-14T19:43:05.971Z",
       "consecutiveFailures": 0
     },
     {
@@ -59,7 +72,7 @@
       "sourceType": "time-series",
       "maxItemsPerRun": 10,
       "active": true,
-      "lastSuccess": "2026-04-03T04:51:31.047Z",
+      "lastSuccess": "2026-04-14T19:43:05.971Z",
       "consecutiveFailures": 0
     },
     {
@@ -71,7 +84,7 @@
       "sourceType": "time-series",
       "maxItemsPerRun": 10,
       "active": true,
-      "lastSuccess": "2026-04-03T04:51:31.613Z",
+      "lastSuccess": "2026-04-14T19:43:05.971Z",
       "consecutiveFailures": 0
     },
     {
@@ -83,7 +96,7 @@
       "sourceType": "time-series",
       "maxItemsPerRun": 10,
       "active": true,
-      "lastSuccess": "2026-04-03T04:51:31.994Z",
+      "lastSuccess": "2026-04-14T19:43:05.971Z",
       "consecutiveFailures": 0
     },
     {
@@ -95,7 +108,7 @@
       "sourceType": "time-series",
       "maxItemsPerRun": 10,
       "active": true,
-      "lastSuccess": "2026-04-03T04:51:32.300Z",
+      "lastSuccess": "2026-04-14T19:43:05.971Z",
       "consecutiveFailures": 0
     },
     {
@@ -107,7 +120,7 @@
       "sourceType": "time-series",
       "maxItemsPerRun": 10,
       "active": true,
-      "lastSuccess": "2026-04-03T04:51:32.604Z",
+      "lastSuccess": "2026-04-14T19:43:05.971Z",
       "consecutiveFailures": 0
     },
     {
@@ -119,7 +132,7 @@
       "sourceType": "time-series",
       "maxItemsPerRun": 10,
       "active": true,
-      "lastSuccess": "2026-04-03T04:51:33.038Z",
+      "lastSuccess": "2026-04-14T19:43:05.971Z",
       "consecutiveFailures": 0
     },
     {
@@ -131,7 +144,7 @@
       "sourceType": "time-series",
       "maxItemsPerRun": 10,
       "active": true,
-      "lastSuccess": "2026-04-03T04:51:33.890Z",
+      "lastSuccess": "2026-04-14T19:43:05.971Z",
       "consecutiveFailures": 0
     },
     {
@@ -144,7 +157,7 @@
       "maxItemsPerRun": 10,
       "active": true,
       "notes": "General feed — no SW-specific feed available (403). Pre-filter will drop non-AZ items.",
-      "lastSuccess": "2026-04-03T04:51:34.258Z",
+      "lastSuccess": "2026-04-14T19:43:05.971Z",
       "consecutiveFailures": 0
     },
     {
@@ -156,7 +169,7 @@
       "sourceType": "time-series",
       "maxItemsPerRun": 10,
       "active": true,
-      "lastSuccess": "2026-04-03T04:51:34.522Z",
+      "lastSuccess": "2026-04-14T19:43:05.971Z",
       "consecutiveFailures": 0
     },
     {
@@ -169,7 +182,7 @@
       "maxItemsPerRun": 10,
       "active": true,
       "notes": "TREO merged into Chamber of Southern Arizona. Covers Tucson/Southern AZ economic development.",
-      "lastSuccess": "2026-04-03T04:51:35.520Z",
+      "lastSuccess": "2026-04-14T19:43:05.971Z",
       "consecutiveFailures": 0
     },
     {
@@ -187,15 +200,106 @@
     },
     {
       "name": "AZ Big Media - Real Estate",
-      "url": "https://azbigmedia.com/real-estate/feed/",
+      "url": "https://azbigmedia.com/category/real-estate/",
+      "type": "scrape",
+      "tier": 2,
+      "category": "news",
+      "sourceType": "time-series",
+      "maxItemsPerRun": 15,
+      "active": true,
+      "notes": "RSS feed returns HTML. Replaced with cheerio scraper against the category page. expectedSelector triggers structure-change auto-skip if WP theme changes or list is JS-rendered.",
+      "expectedSelector": "article.blog-card",
+      "scrapeConfig": {
+        "rowSelector": "article.blog-card",
+        "titleSelector": ".blog-card__title",
+        "linkSelector": ".blog-card__link",
+        "dateSelector": ".blog-card__date",
+        "descSelector": ".blog-card__excerpt"
+      },
+      "lastSuccess": "2026-04-14T19:43:05.971Z",
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Scottsdale Planning Commission Agenda",
+      "url": "https://ww2.scottsdaleaz.gov/Assets/ScottsdaleAZ/Boards/Planning/agendas-minutes/2026-Agendas/04-08-26-regular-agenda.pdf",
+      "type": "pdf",
+      "tier": 1,
+      "category": "planning",
+      "sourceType": "snapshot",
+      "maxItemsPerRun": 30,
+      "active": true,
+      "notes": "Pilot of planning-agendas.js engine against a real AZ agenda. URL is hardcoded to the 2026-04-08 meeting; next step is to build an index-page discovery layer so this auto-rolls forward each meeting. Runs Mondays only. Snapshot type so re-scoring is fine.",
+      "lastSuccess": "2026-04-14T19:43:05.971Z",
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Phoenix Legistar — Rezoning & Planning",
+      "url": "https://webapi.legistar.com/v1/phoenix/matters",
+      "type": "api",
+      "tier": 1,
+      "category": "planning",
+      "sourceType": "time-series",
+      "maxItemsPerRun": 30,
+      "legistarClient": "phoenix",
+      "cityName": "Phoenix",
+      "lookbackDays": 30,
+      "active": true,
+      "notes": "Legistar web API. Returns rezoning applications, PUD amendments, zoning variances, site plan reviews. Structured JSON — no PDF or AI cost.",
+      "lastSuccess": "2026-04-14T19:43:05.971Z",
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Maricopa County P&Z Commission Agenda",
+      "type": "agenda-index",
+      "tier": 1,
+      "category": "planning",
+      "sourceType": "snapshot",
+      "maxItemsPerRun": 30,
+      "agendaIndexUrl": "https://www.maricopa.gov/AgendaCenter/Planning-Zoning-Commission-9",
+      "agendaLinkPattern": "/AgendaCenter/ViewFile/Agenda/",
+      "cityName": "Maricopa County",
+      "active": true,
+      "notes": "CivicEngage agenda center. Auto-discovers latest P&Z agenda PDF, parses with Claude Haiku. Meets 1st and 3rd Thursday. Covers unincorporated areas with large development projects. Runs Mondays only.",
+      "lastSuccess": "2026-04-14T19:43:05.971Z",
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Google News — West Valley Development",
+      "url": "https://news.google.com/rss/search?q=goodyear+OR+surprise+OR+buckeye+OR+avondale+arizona+development+OR+construction+OR+commercial&hl=en-US&gl=US&ceid=US:en",
       "type": "rss",
       "tier": 2,
       "category": "news",
       "sourceType": "time-series",
       "maxItemsPerRun": 10,
-      "active": false,
-      "notes": "Feed returns HTML, not RSS. Disabled until feed is fixed or replaced with scraper.",
-      "lastSuccess": null,
+      "active": true,
+      "notes": "West Valley growth corridor — Goodyear, Surprise, Buckeye, Avondale. Fast-growing submarket with industrial, logistics, and residential development.",
+      "lastSuccess": "2026-04-14T19:43:05.971Z",
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Google News — Chandler Gilbert Development",
+      "url": "https://news.google.com/rss/search?q=chandler+OR+gilbert+arizona+development+OR+construction+OR+commercial+OR+multifamily&hl=en-US&gl=US&ceid=US:en",
+      "type": "rss",
+      "tier": 2,
+      "category": "news",
+      "sourceType": "time-series",
+      "maxItemsPerRun": 10,
+      "active": true,
+      "notes": "Southeast Valley — Chandler and Gilbert. Strong tech corridor with data centers, mixed-use, and multifamily development.",
+      "lastSuccess": "2026-04-14T19:43:05.971Z",
+      "consecutiveFailures": 0
+    },
+    {
+      "name": "Google News — AZ Hotel Hospitality Construction",
+      "url": "https://news.google.com/rss/search?q=arizona+hotel+OR+resort+OR+hospitality+construction+OR+renovation+OR+development&hl=en-US&gl=US&ceid=US:en",
+      "type": "rss",
+      "tier": 2,
+      "category": "news",
+      "sourceType": "time-series",
+      "maxItemsPerRun": 10,
+      "active": true,
+      "notes": "Hospitality-focused feed. Bristlecone sweet spot — strong hotel/resort track record (Courtyard, Catbird, AC Hotel RiNo).",
+      "lastSuccess": "2026-04-14T19:43:05.971Z",
       "consecutiveFailures": 0
     },
     {
@@ -238,6 +342,34 @@
       "consecutiveFailures": 0
     },
     {
+      "name": "Mesa Permits (Socrata API)",
+      "url": "https://data.mesaaz.gov/resource/2gkz-7z4f.json",
+      "type": "api",
+      "tier": 1,
+      "category": "permit",
+      "sourceType": "snapshot",
+      "maxItemsPerRun": 50,
+      "scraper": "mesa",
+      "active": true,
+      "notes": "Public Socrata API, no key required. Commercial permits $500K+, 30-day lookback.",
+      "lastSuccess": "2026-04-13T18:12:15.479Z",
+      "consecutiveFailures": 1
+    },
+    {
+      "name": "Tempe Permits (ArcGIS CSV)",
+      "url": "https://hub.arcgis.com/api/v3/datasets/55b38626464d48cb94e81cb8227d6fde_0/downloads/data",
+      "type": "api",
+      "tier": 1,
+      "category": "permit",
+      "sourceType": "snapshot",
+      "maxItemsPerRun": 50,
+      "scraper": "tempe",
+      "active": true,
+      "notes": "ArcGIS Hub CSV from Accela Civic Platform. Commercial/multifamily, $2M+ or 5K+ sqft, 30-day lookback.",
+      "lastSuccess": "2026-04-14T19:43:05.971Z",
+      "consecutiveFailures": 0
+    },
+    {
       "name": "Scottsdale Accela Permits",
       "type": "abp",
       "tier": 3,
@@ -246,7 +378,7 @@
       "maxItemsPerRun": 50,
       "config": "scottsdale",
       "active": true,
-      "lastSuccess": "2026-04-03T04:51:35.533Z",
+      "lastSuccess": "2026-04-14T19:43:05.971Z",
       "consecutiveFailures": 0
     },
     {

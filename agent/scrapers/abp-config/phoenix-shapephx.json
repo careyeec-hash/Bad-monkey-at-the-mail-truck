@@ -1,24 +1,55 @@
 {
-  "cityName": "City of Phoenix",
-  "portalUrl": "https://shapephx.phoenix.gov",
+  "cityName": "City of Phoenix (SHAPE PHX)",
+  "portalUrl": "https://shapephx.phoenix.gov/s/",
   "isAccela": false,
-  "platform": "salesforce",
+  "platform": "salesforce-clariti",
   "searchParams": {
     "dateRangeDays": 7,
     "permitTypes": ["Commercial Building", "Multifamily", "Institutional"],
     "statuses": ["Applied", "Issued", "In Review", "Approved"]
   },
   "selectors": {
-    "resultsTable": "",
-    "permitNumber": "",
-    "address": "",
-    "description": "",
-    "owner": "",
-    "contractor": "",
-    "valuation": "",
+    "searchForm": {},
+    "submitButton": "",
+    "waitAfterSubmit": "",
+    "resultsContainer": "",
+    "rowSelector": "",
+    "columns": {
+      "permitNumber": "",
+      "address": "",
+      "description": "",
+      "status": "",
+      "issuedDate": "",
+      "owner": "",
+      "contractor": "",
+      "valuation": ""
+    },
+    "detailLink": "",
     "nextPage": ""
   },
+  "permitDetailFields": {
+    "_note": "Fields available on individual permit pages (e.g. /s/permit2/{sfid}/{number})",
+    "applicant": "Applicant section",
+    "contractor": "Contractor section with license",
+    "address": "Address field with Active/Inactive status",
+    "permitType": "Permit Type (e.g. Construction and Trades Residential)",
+    "workType": "Permit Work Type",
+    "useClass": "Permit Use Class",
+    "useType": "Use Type (e.g. Single Family, Multi-Family, Commercial)",
+    "description": "Description field — very detailed",
+    "valuation": "Project Valuation (dollar amount)",
+    "status": "Status (e.g. Issued, In Review)",
+    "parcel": "Parcel number",
+    "zoning": "Zoning code",
+    "sqft": "Permit Square Footage",
+    "structureClass": "Structure Class"
+  },
+  "filters": {
+    "excludeDescriptions": ["single family", "single-family", "sfr", "pool", "fence", "solar", "reroof", "re-roof", "water heater", "photovoltaic", "patio cover"],
+    "commercialKeywords": ["commercial", "multi", "apartment", "hotel", "office", "retail", "warehouse", "industrial", "mixed use", "restaurant", "medical", "hospital", "church", "school", "tenant improvement"]
+  },
+  "maxPages": 3,
   "timeout": 60000,
   "active": false,
-  "notes": "SHAPE PHX launches April 13, 2026 (Salesforce-based, replacing PDD Online). Selectors TBD after launch — check for API/RSS/CSV export options first before building ABP scraper."
+  "notes": "Release 3 (commercial permits) POSTPONED as of April 13, 2026. Portal accessible for residential. Search requires Salesforce login — global search redirects to error for unauthenticated users. Individual permit pages at /s/permit2/{sfid}/{number} are publicly accessible and indexed by Google. Selectors TBD when commercial search goes live."
 }

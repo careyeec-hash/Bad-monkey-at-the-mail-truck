@@ -2,9 +2,18 @@
   "profileName": "Bristlecone Construction",
   "profileSlug": "bristlecone",
   "location": {
-    "primary": "Phoenix metro (all submarkets equally weighted)",
+    "primary": "Phoenix metro",
     "secondary": ["Tucson metro (maybe)", "Flagstaff (maybe)"],
-    "state": "Arizona"
+    "state": "Arizona",
+    "targetSubmarkets": [
+      "Downtown Phoenix",
+      "Camelback corridor",
+      "Tempe Town Lake",
+      "Scottsdale Airpark",
+      "I-17 industrial corridor",
+      "West Valley (Glendale, Goodyear, Surprise, Buckeye growth nodes)"
+    ],
+    "submarketGuidance": "Projects in targetSubmarkets get a +1 score boost (per Tom's intake — these corridors matter more). Phoenix metro outside these areas still scores normally, just no boost."
   },
   "company": {
     "type": "General Contractor + Self-Perform Structural Concrete",
@@ -66,13 +75,31 @@
     "competitivePosition": 0.10
   },
   "scoringGuidance": {
+    "primaryTrack": "Bristlecone's PRIMARY business is GC pursuit work — design-forward, technically demanding, ground-up or complex repositioning, negotiated/design-build/CM-at-risk preferred. This is the focus. Concrete sub-scope is a SECONDARY opportunity track, not co-equal. When in doubt, evaluate as a GC pursuit lead first.",
     "actionability": "Can Tom take a specific action? Parse his network for intros, make a phone call, send a LinkedIn message, submit quals? Score 9-10. 'The market is growing' with no specific action = score 3.",
-    "timing": "Sites going under contract or pre-planning = 10. Just entitled = 9. Permitted and bidding = 8. Under construction = 5 (concrete scope still viable, GC can still change). Completed = 1. Tom says: years before a project starts is fine.",
-    "projectFit": "Design-forward ground-up or complex adaptive reuse = 10. Distressed/foreclosed project needing rescue = 9. Small TI or single-family = 1. Concrete-scope-only on a large project = 7.",
+    "timing": "Sites going under contract or pre-planning = 10. Just entitled = 9. Permitted and bidding = 8. Under construction = 5 (concrete scope still viable, GC can still change). Completed = 1. Tom says: years before a project starts is fine — never too early.",
+    "projectFit": "Design-forward ground-up or complex adaptive reuse = 10. Distressed/foreclosed/stalled project needing rescue = 9 (see distressedSignals below). Small TI or single-family = 1. Concrete-scope-only on a large project where a competitor GC won = 6.",
     "projectScale": "Projects $10M+ for GC scope score highest. $2-10M solid. Under $2M filter out for GC. Concrete scope: $1M+ threshold.",
-    "competitivePosition": "Project with no GC named = 9. Project with GC but Tom knows someone on the team = 7. Known developer's project = boost +2. Known architect's project = boost +2. Competitor GC won the job = 6 (concrete scope lead).",
-    "gcFieldNote": "GC field blank is a SIGNAL worth noting but does NOT dominate scoring. Tom: 'I don't care if there's a GC filled out or not.' GC assigned = concrete scope opportunity.",
-    "pursuitMatch": "Tom's process: network intro first, then phone, LinkedIn, email, text, quals package. Action items should match this flow — e.g., 'Check your network for intros to Fields Development' before 'Send quals to owner.'"
+    "competitivePosition": "Project with no GC named = +1 boost. Project with GC but Tom knows someone on the team = neutral. Known target developer's project = +2 boost. Known target architect's project = +2 boost. Competitor GC won the job = concrete-scope lead, max score 6.",
+    "submarketBoost": "If the project is in one of the targetSubmarkets (Downtown PHX, Camelback, Tempe Town Lake, Scottsdale Airpark, I-17 industrial, West Valley growth nodes), add +1 to the score. Outside Phoenix metro entirely (e.g. Tucson) = -1 unless otherwise strong.",
+    "gcFieldNote": "GC field blank is a SIGNAL but does NOT dominate scoring. Tom: 'I don't care if there's a GC filled out or not.' Blank GC + Bristlecone sweet spot = strong GC pursuit lead. GC assigned and that GC is a competitor = concrete-sub lead (different action).",
+    "pursuitMatch": "Tom's process: network intro first, then phone, LinkedIn, email, text, quals package. Action items should match this flow — e.g., 'Check your network for intros to Fields Development' before 'Send quals to owner.'",
+    "architectExtraction": "ALWAYS extract architect names from project descriptions when present, and put them in key_contacts with role='Architect'. Tom doesn't have a target architect list yet, but every architect surfaced becomes a potential relationship. When an architect IS in targetArchitects, treat it as a warm lead and boost +2."
+  },
+  "distressedSignals": {
+    "description": "Tom said 'broken, foreclosed, hairy projects' are right in Bristlecone's wheelhouse. Tom can't label these manually — Opus must detect them from text.",
+    "keywords": [
+      "stalled", "stalled project", "abandoned", "foreclosed", "foreclosure",
+      "delayed", "back on the market", "previous contractor",
+      "took over", "taking over", "rescued", "rescue",
+      "value engineering", "over budget", "out of GMP", "blew the budget",
+      "construction defect", "code violation", "out of compliance",
+      "receivership", "distressed", "troubled project",
+      "lender took back", "bank-owned", "REO",
+      "redesigned after", "back to drawing board",
+      "needs a new GC", "looking for a new contractor"
+    ],
+    "scoringImpact": "Any project with one or more distressedSignals keywords AND in Bristlecone's project type sweet spot = minimum score 7. Two or more keywords or explicit GC change = minimum score 8. Distressed projects are HIGH-VALUE leads — call them out clearly in the action_item with 'distressed/rescue opportunity' framing."
   },
   "targetDevelopers": [
     "Empire Group (Aspirant)",
@@ -120,6 +147,8 @@
   },
   "alertThreshold": 9,
   "digestThreshold": 4,
+  "enrichmentThreshold": 8,
+  "enrichmentDailyCap": 20,
   "enrichmentFlags": true,
   "prefilterExclusions": [
     "Single-family residential",
@@ -130,12 +159,37 @@
     {
       "title": "Halo Vista Mixed-Use — N Phoenix (Empire Group)",
       "score": 9,
-      "reasoning": "Empire Group is a target developer. Mixed-use is Bristlecone's sweet spot. Phoenix location. No GC assigned yet. Tom should call his network for an intro to Empire Group's project lead immediately."
+      "fit_type": "gc-scope",
+      "reasoning": "Empire Group is a target developer. Mixed-use is Bristlecone's sweet spot. Phoenix location. No GC assigned yet. fit_type=gc-scope (Bristlecone pursues this as GC). Tom should call his network for an intro to Empire Group's project lead immediately."
     },
     {
       "title": "DPR Construction wins $80M data center — Chandler",
-      "score": 7,
-      "reasoning": "DPR (competitor) winning a large project = concrete scope opportunity. $80M project means significant structural concrete. Action: call DPR to bid the concrete package. Score 7 not 9 because GC is already assigned."
+      "score": 6,
+      "fit_type": "concrete-scope",
+      "reasoning": "DPR (competitor) is EXPLICITLY NAMED as the winning GC, AND it's a data center (heavy structural concrete). Both conditions for concrete-scope are met. Action: call DPR's project exec to bid the structural concrete package. Capped at 6 because it's the secondary track. NOTE: this fit_type ONLY applies because DPR is named as winner. If no GC were named, this would be gc-scope."
+    },
+    {
+      "title": "Halo Vista mixed-use master plan announced — N Phoenix near TSMC",
+      "score": 9,
+      "fit_type": "gc-scope",
+      "reasoning": "Mixed-use master plan = Bristlecone sweet spot. Master plan stage means NO GC assigned yet → fit_type=gc-scope automatically (the rule is binary). N Phoenix near TSMC = +1 submarket/demand-driver boost. 'Near TSMC' does NOT make this a concrete sub job — TSMC is a neighbor, not the project. Score: base 8 (sweet spot, no GC, large scale) + 1 submarket boost = 9. Action: identify the developer immediately and pursue early preconstruction collaboration. This is exactly the kind of lead Tom would forward."
+    },
+    {
+      "title": "Opus Group breaks ground on innovation core — Peoria (West Valley)",
+      "score": 8,
+      "fit_type": "gc-scope",
+      "reasoning": "Opus Group is a major national developer with repeat programs (matches bestClients profile). 'Innovation core' suggests mixed-use or institutional. Peoria is West Valley = target submarket = +1 boost. No GC named. Score: base 7 + 1 submarket = 8. Action: research Opus Group's Phoenix lead via LinkedIn, leverage any second-degree connections."
+    },
+    {
+      "title": "Stalled Tempe boutique hotel back on the market after lender takeback",
+      "score": 8,
+      "fit_type": "gc-scope",
+      "reasoning": "Distressed signal (stalled, lender takeback) + hospitality + Tempe Town Lake area + Bristlecone's wheelhouse for hairy projects. fit_type=gc-scope. Action: research the lender or new owner immediately, lead with adaptive reuse + cost-rescue track record."
+    },
+    {
+      "title": "Construction employment up 26K nationally — wage pressure",
+      "score": 2,
+      "reasoning": "Industry stat with no project, no Arizona connection, no actionable contact. Drop. Should not have passed pre-filter."
     },
     {
       "title": "Greystar 350-unit multifamily — Tempe Town Lake",
@@ -158,31 +212,37 @@
       "reasoning": "Horizontal infrastructure / light industrial expansion. Not Bristlecone's fit type. No structural concrete scope likely. Buckeye is far west valley. Score 2 — drop."
     }
   ],
-  "scoreFloors": [
+  "minimumScores": [
     {
-      "condition": "Target developer's project in Phoenix metro",
+      "pattern": "A target developer (from targetDevelopers list) is mentioned as the owner/applicant for a Phoenix metro project",
       "minScore": 8,
-      "note": "Any target developer project is always 8+ regardless of other factors"
+      "rationale": "Tom asked for these — any target developer project is always a hot lead regardless of other factors"
     },
     {
-      "condition": "Multifamily 100+ units with no GC assigned",
+      "pattern": "Multifamily 100+ units in Phoenix metro with no GC assigned",
       "minScore": 7,
-      "note": "Bristlecone's core sweet spot with open GC opportunity"
+      "rationale": "Bristlecone's core sweet spot with open GC opportunity"
     },
     {
-      "condition": "Data center or semiconductor facility in AZ",
+      "pattern": "Project shows distressedSignals keywords AND fits Bristlecone's project types",
       "minScore": 7,
-      "note": "Large-scale structural concrete scope even if not GC opportunity"
+      "rationale": "Tom: broken/foreclosed/hairy projects are right in our wheelhouse"
     },
     {
-      "condition": "RFP with bid deadline in next 30 days",
+      "pattern": "RFP with bid deadline in the next 30 days",
       "minScore": 8,
-      "note": "Time-sensitive opportunity demands immediate action"
+      "rationale": "Time-sensitive opportunity demands immediate action"
     },
     {
-      "condition": "Competitor GC wins project $20M+",
+      "pattern": "Competitor GC wins a project $20M+ — concrete sub opportunity only",
       "minScore": 6,
-      "note": "Concrete scope sub opportunity — call the winning GC"
+      "maxScore": 6,
+      "rationale": "Concrete scope sub lead — different action (call the GC, not the developer). Capped at 6 because it's the secondary track."
+    },
+    {
+      "pattern": "Item is industry statistics, employment data, market roundup, or 'Top 5 deals' article with no specific named project",
+      "maxScore": 3,
+      "rationale": "Not actionable — pure context. Should usually be filtered out before reaching evaluation."
     }
   ]
 }
