@@ -27,9 +27,13 @@ const searchText = [lead.project_name, lead.address, lead.source_name, lead.gc_n
 // Source date — prefer briefing_date, fall back to created_at
 const sourceDate = lead.briefing_date || lead.created_at
 const sourceDateLabel = sourceDate ? new Date(sourceDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null
+
+// Sort keys: prefer first_seen_at (when agent discovered it), fall back to created_at
+const sortDate = lead.first_seen_at || lead.created_at || lead.briefing_date || ''
+const sortName = (lead.project_name || '').toLowerCase()
 ---
 
-<a href={`/leads/${lead.id}`} class="lead-row" data-status={lead.status} data-score={score} data-sector={sector} data-search={searchText}>
+<a href={`/leads/${lead.id}`} class="lead-row" data-status={lead.status} data-score={score} data-sector={sector} data-search={searchText} data-date={sortDate} data-name={sortName}>
   <ScoreBadge score={score} />
 
   <div style="flex: 1; min-width: 0;">

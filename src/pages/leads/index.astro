@@ -179,6 +179,12 @@ for (const l of (leads || [])) {
     }
   }
 
+  function dateValue(el: HTMLElement): number {
+    const raw = el.dataset.date || ''
+    const t = Date.parse(raw)
+    return isNaN(t) ? 0 : t
+  }
+
   function sortRows() {
     const sortVal = (document.getElementById('sort-select') as HTMLSelectElement)?.value || 'score-desc'
     const list = document.getElementById('leads-list')
@@ -189,13 +195,9 @@ for (const l of (leads || [])) {
       const bEl = b as HTMLElement
       if (sortVal === 'score-desc') return (parseInt(bEl.dataset.score || '0') - parseInt(aEl.dataset.score || '0'))
       if (sortVal === 'score-asc') return (parseInt(aEl.dataset.score || '0') - parseInt(bEl.dataset.score || '0'))
-      if (sortVal === 'name-asc') return (aEl.dataset.search || '').localeCompare(bEl.dataset.search || '')
-      if (sortVal === 'date-desc' || sortVal === 'date-asc') {
-        // Use DOM order as proxy for date (server already sorted)
-        const aIdx = rows.indexOf(a)
-        const bIdx = rows.indexOf(b)
-        return sortVal === 'date-desc' ? aIdx - bIdx : bIdx - aIdx
-      }
+      if (sortVal === 'name-asc') return (aEl.dataset.name || '').localeCompare(bEl.dataset.name || '')
+      if (sortVal === 'date-desc') return dateValue(bEl) - dateValue(aEl)
+      if (sortVal === 'date-asc') return dateValue(aEl) - dateValue(bEl)
       return 0
     })
 
