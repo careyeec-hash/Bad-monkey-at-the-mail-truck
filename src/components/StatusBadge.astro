@@ -14,10 +14,17 @@ const dotClass: Record<string, string> = {
   'no-bid': 'status-no-bid',
   'dismissed': 'status-dismissed',
   'stale': 'status-stale',
+  'market-intel': 'status-market-intel',
 }
+
+const label: Record<string, string> = {
+  'market-intel': 'Market Intel',
+  'no-bid': 'No-bid',
+}
+const display = label[status] || (status.charAt(0).toUpperCase() + status.slice(1))
 ---
 
 <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #374151;">
   <span class:list={['status-dot', dotClass[status] || 'status-new']}></span>
-  {status.charAt(0).toUpperCase() + status.slice(1)}
+  {display}
 </span>

@@ -21,7 +21,11 @@ const notes = (lead.lead_notes || []).sort((a: any, b: any) =>
   new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
 )
 
-const statuses = ['new', 'tracking', 'pursuing', 'won', 'lost', 'no-bid', 'dismissed']
+const statuses = ['new', 'tracking', 'pursuing', 'market-intel', 'won', 'lost', 'no-bid', 'dismissed']
+const statusLabels: Record<string, string> = {
+  'market-intel': 'Market Intel',
+  'no-bid': 'No-bid',
+}
 ---
 
 <Layout title={lead.project_name}>
@@ -54,7 +58,7 @@ const statuses = ['new', 'tracking', 'pursuing', 'won', 'lost', 'no-bid', 'dismi
           data-status={s}
           style="padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; border: 1px solid #D1D5DB; background: white; cursor: pointer; color: #374151;"
         >
-          {s.charAt(0).toUpperCase() + s.slice(1)}
+          {statusLabels[s] || (s.charAt(0).toUpperCase() + s.slice(1))}
         </button>
       ))}
     </div>

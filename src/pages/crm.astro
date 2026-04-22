@@ -1,0 +1,272 @@
+---
+import Layout from '../layouts/Layout.astro'
+import { supabase } from '../lib/supabase.js'
+
+// Fetch all leads with their note + contact counts (as joined counts via separate queries kept simple)
+const { data: leadsRaw } = await supabase
+  .from('leads')
+  .select('*, lead_notes(id), lead_contacts(id)')
+  .order('updated_at', { ascending: false })
+  .limit(500)
+
+const leads = (leadsRaw || []).map((l: any) => ({
+  ...l,
+  note_count: (l.lead_notes || []).length,
+  contact_count: (l.lead_contacts || []).length,
+}))
+
+// "Touched" = Tom has engaged: status moved off 'new', or a note/contact added, or a next-action/contract value recorded
+const touched = leads.filter((l: any) =>
+  (l.status && l.status !== 'new') ||
+  l.note_count > 0 ||
+  l.contact_count > 0 ||
+  l.next_action ||
+  l.contract_value
+)
+
+const statuses = ['new', 'tracking', 'pursuing', 'market-intel', 'won', 'lost', 'no-bid', 'dismissed', 'stale']
+const statusLabel = (s: string) => s === 'market-intel' ? 'Market Intel' : s === 'no-bid' ? 'No-bid' : (s.charAt(0).toUpperCase() + s.slice(1))
+
+const priorities = ['high', 'medium', 'low']
+
+function fmtDate(d: string | null) {
+  if (!d) return ''
+  try { return new Date(d).toISOString().slice(0, 10) } catch { return '' }
+}
+---
+
+<Layout title="Tom's CRM">
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <h1 class="text-primary-heading">Tom's CRM</h1>
+      <p style="font-size: 13px; color: #6B7280; margin-top: 4px;">Every lead you've touched — status, notes, contacts, next action. Click a cell to edit inline.</p>
+    </div>
+    <div style="font-size: 13px; color: #6B7280;">{touched.length} touched · {leads.length} total</div>
+  </div>
+
+  <!-- Filter / search -->
+  <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+    <input type="text" id="crm-search" class="form-input" placeholder="Search..." style="max-width: 300px;" />
+    <select id="crm-status-filter" class="filter-select">
+      <option value="all">All statuses</option>
+      {statuses.map(s => <option value={s}>{statusLabel(s)}</option>)}
+    </select>
+  </div>
+
+  {touched.length > 0 ? (
+    <div class="card-surface" style="padding: 0; overflow-x: auto;">
+      <table class="crm-table">
+        <thead>
+          <tr>
+            <th>Project</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Next Action</th>
+            <th>Next Date</th>
+            <th>Contract $</th>
+            <th>Notes</th>
+            <th>Contacts</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+        <tbody>
+          {touched.map((lead: any) => (
+            <tr
+              class="crm-row"
+              data-lead-id={lead.id}
+              data-status={lead.status || 'new'}
+              data-search={[lead.project_name, lead.address, lead.gc_name, lead.project_type].filter(Boolean).join(' ').toLowerCase()}
+            >
+              <td class="project-cell">
+                <a href={`/leads/${lead.id}`} style="color: #111827; font-weight: 600; text-decoration: none;">
+                  {lead.project_name}
+                </a>
+                <div style="font-size: 11px; color: #9CA3AF; margin-top: 2px;">{lead.address || lead.source_name || '—'}</div>
+              </td>
+              <td>
+                <select class="crm-edit" data-field="status" data-id={lead.id}>
+                  {statuses.map(s => (
+                    <option value={s} selected={lead.status === s}>{statusLabel(s)}</option>
+                  ))}
+                </select>
+              </td>
+              <td>
+                <select class="crm-edit" data-field="priority" data-id={lead.id}>
+                  {priorities.map(p => (
+                    <option value={p} selected={(lead.priority || 'medium') === p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
+                  ))}
+                </select>
+              </td>
+              <td>
+                <input type="text" class="crm-edit" data-field="next_action" data-id={lead.id} value={lead.next_action || ''} placeholder="—" />
+              </td>
+              <td>
+                <input type="date" class="crm-edit" data-field="next_action_date" data-id={lead.id} value={fmtDate(lead.next_action_date)} />
+              </td>
+              <td>
+                <input type="text" class="crm-edit" data-field="contract_value" data-id={lead.id} value={lead.contract_value || ''} placeholder="—" style="width: 100px;" />
+              </td>
+              <td style="text-align: center; font-size: 13px; color: #6B7280;">{lead.note_count || 0}</td>
+              <td style="text-align: center; font-size: 13px; color: #6B7280;">{lead.contact_count || 0}</td>
+              <td style="font-size: 12px; color: #9CA3AF; white-space: nowrap;">
+                {lead.updated_at ? new Date(lead.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  ) : (
+    <div class="card-surface">
+      <div class="empty-state">
+        <p style="font-size: 15px; color: #6B7280;">No touched leads yet.</p>
+        <p style="font-size: 13px; color: #9CA3AF; margin-top: 4px;">Move a lead off "New", add a note, or add a contact — it will appear here.</p>
+      </div>
+    </div>
+  )}
+
+  <div id="crm-toast" style="display: none; position: fixed; bottom: 24px; right: 24px; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; z-index: 50;"></div>
+</Layout>
+
+<style>
+  .crm-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .crm-table thead th {
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #6B7280;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: #F9FAFB;
+    border-bottom: 1px solid #E5E7EB;
+    white-space: nowrap;
+  }
+  .crm-table tbody td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #F3F4F6;
+    vertical-align: middle;
+  }
+  .crm-table tbody tr:hover {
+    background: #FAFBFC;
+  }
+  .crm-table .project-cell {
+    min-width: 240px;
+    max-width: 320px;
+  }
+  .crm-edit {
+    width: 100%;
+    padding: 4px 8px;
+    font-size: 13px;
+    border: 1px solid transparent;
+    background: transparent;
+    border-radius: 4px;
+    color: #374151;
+    font-family: inherit;
+  }
+  .crm-edit:hover {
+    border-color: #E5E7EB;
+    background: white;
+  }
+  .crm-edit:focus {
+    outline: none;
+    border-color: #1E2761;
+    background: white;
+    box-shadow: 0 0 0 2px rgba(30, 39, 97, 0.1);
+  }
+  .crm-edit.saving { background: #FEF3C7; border-color: #FCD34D; }
+  .crm-edit.saved { background: #D1FAE5; border-color: #6EE7B7; }
+  .crm-edit.error { background: #FEE2E2; border-color: #FCA5A5; }
+  .filter-select {
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid #D1D5DB;
+    background: white;
+    cursor: pointer;
+    color: #374151;
+  }
+</style>
+
+<script>
+  const rows = Array.from(document.querySelectorAll('.crm-row'))
+  const search = document.getElementById('crm-search') as HTMLInputElement | null
+  const statusFilter = document.getElementById('crm-status-filter') as HTMLSelectElement | null
+  const toast = document.getElementById('crm-toast')!
+
+  function applyFilters() {
+    const q = (search?.value || '').toLowerCase().trim()
+    const s = statusFilter?.value || 'all'
+    rows.forEach(row => {
+      const el = row as HTMLElement
+      const matchSearch = !q || (el.dataset.search || '').includes(q)
+      const matchStatus = s === 'all' || el.dataset.status === s
+      ;(el as HTMLTableRowElement).style.display = (matchSearch && matchStatus) ? '' : 'none'
+    })
+  }
+
+  search?.addEventListener('input', applyFilters)
+  statusFilter?.addEventListener('change', applyFilters)
+
+  function showToast(msg: string, ok = true) {
+    toast.textContent = msg
+    toast.style.background = ok ? '#065F46' : '#991B1B'
+    toast.style.color = 'white'
+    toast.style.display = 'block'
+    setTimeout(() => { toast.style.display = 'none' }, 2000)
+  }
+
+  async function saveField(el: HTMLInputElement | HTMLSelectElement) {
+    const id = el.dataset.id
+    const field = el.dataset.field
+    if (!id || !field) return
+
+    const row = el.closest('.crm-row') as HTMLElement | null
+    let value: string | null = el.value
+    if (value === '') value = null
+
+    el.classList.remove('saved', 'error')
+    el.classList.add('saving')
+
+    try {
+      const res = await fetch(`/api/leads/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value })
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || `Save failed (${res.status})`)
+      }
+      el.classList.remove('saving')
+      el.classList.add('saved')
+      setTimeout(() => el.classList.remove('saved'), 1200)
+      if (field === 'status' && row) row.dataset.status = value || ''
+      applyFilters()
+    } catch (err: any) {
+      el.classList.remove('saving')
+      el.classList.add('error')
+      showToast(err?.message || 'Save failed', false)
+    }
+  }
+
+  document.querySelectorAll<HTMLSelectElement>('select.crm-edit').forEach(el => {
+    el.addEventListener('change', () => saveField(el))
+  })
+
+  document.querySelectorAll<HTMLInputElement>('input.crm-edit').forEach(el => {
+    el.addEventListener('change', () => saveField(el))
+    el.addEventListener('blur', () => {
+      if (el.dataset.dirty === '1') {
+        el.dataset.dirty = '0'
+        saveField(el)
+      }
+    })
+    el.addEventListener('input', () => { el.dataset.dirty = '1' })
+  })
+</script>

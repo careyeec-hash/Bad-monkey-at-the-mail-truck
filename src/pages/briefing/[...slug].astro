@@ -1,17 +1,17 @@
 ---
 import Layout from '../../layouts/Layout.astro'
-import { getCollection } from 'astro:content'
+import { getCollection, render } from 'astro:content'
 
 const { slug } = Astro.params
 
 const allBriefs = await getCollection('briefs')
-const brief = allBriefs.find(b => b.id === slug || b.id === slug + '.md')
+const brief = allBriefs.find(b => b.id === slug || b.id === slug + '.md' || b.id.replace(/\.md$/, '') === slug)
 
 if (!brief) {
   return Astro.redirect('/archive')
 }
 
-const { Content } = await brief.render()
+const { Content } = await render(brief)
 ---
 
 <Layout title={`Briefing — ${brief.data.date}`}>
