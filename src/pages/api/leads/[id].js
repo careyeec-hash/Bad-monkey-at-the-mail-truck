@@ -62,6 +62,23 @@ export async function PUT({ params, request }) {
     })
   }
 
+  // Rule: dismissed leads have their score zeroed and priority dropped so
+  // they disappear from dashboards and sorted views. Applies whether the
+  // status change came from the lead page, the CRM table, or anywhere else.
+  if (body.status === 'dismissed') {
+    body.actionability_score = 0
+    body.priority = 'low'
+  }
+
+  // Clamp any explicit score edit to 0–10 and keep priority in sync.
+  if (body.actionability_score !== undefined && body.actionability_score !== null) {
+    const n = Number(body.actionability_score)
+    body.actionability_score = Number.isFinite(n) ? Math.max(0, Math.min(10, Math.round(n))) : 0
+    if (body.priority === undefined) {
+      body.priority = body.actionability_score >= 8 ? 'high' : body.actionability_score >= 5 ? 'medium' : 'low'
+    }
+  }
+
   // Regular lead update
   const { data, error } = await supabase
     .from('leads')

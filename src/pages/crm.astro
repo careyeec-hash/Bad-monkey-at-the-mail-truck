@@ -1,6 +1,5 @@
 ---
 import Layout from '../layouts/Layout.astro'
-import ScoreBadge from '../components/ScoreBadge.astro'
 import { supabase } from '../lib/supabase.js'
 
 const { data: leadsRaw } = await supabase
@@ -96,7 +95,18 @@ for (const l of touched) {
                 data-status={lead.status || 'new'}
                 data-search={[lead.project_name, lead.address, lead.gc_name, lead.project_type].filter(Boolean).join(' ').toLowerCase()}
               >
-                <td style="text-align: center;"><ScoreBadge score={lead.actionability_score || 0} /></td>
+                <td style="text-align: center;">
+                  <input
+                    type="number"
+                    class={`crm-edit crm-score-input score-tier-${(lead.actionability_score || 0) >= 9 ? 'hot' : (lead.actionability_score || 0) >= 7 ? 'warm' : (lead.actionability_score || 0) >= 5 ? 'watch' : 'low'}`}
+                    data-field="actionability_score"
+                    data-id={lead.id}
+                    min="0"
+                    max="10"
+                    step="1"
+                    value={lead.actionability_score ?? 0}
+                  />
+                </td>
                 <td class="project-cell">
                   <a href={`/leads/${lead.id}`} class="project-link">{lead.project_name}</a>
                   <div class="project-sub">{lead.address || lead.source_name || '—'}</div>
@@ -257,6 +267,24 @@ for (const l of touched) {
   .priority-medium { color: #92400E; }
   .priority-low { color: #6B7280; }
 
+  /* Score input — colour-tiered like the ScoreBadge */
+  .crm-score-input {
+    width: 44px;
+    text-align: center;
+    font-weight: 700;
+    padding: 4px 4px;
+    -moz-appearance: textfield;
+  }
+  .crm-score-input::-webkit-outer-spin-button,
+  .crm-score-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .score-tier-hot { background-color: #FEE2E2; color: #DC2626; border-color: #FECACA; }
+  .score-tier-warm { background-color: #FEF3C7; color: #D97706; border-color: #FDE68A; }
+  .score-tier-watch { background-color: #DBEAFE; color: #2563EB; border-color: #BFDBFE; }
+  .score-tier-low { background-color: #F3F4F6; color: #6B7280; border-color: #E5E7EB; }
+
   /* Status filter chips */
   .crm-status-chip {
     display: inline-flex;
@@ -335,6 +363,8 @@ for (const l of touched) {
         const data = await res.json().catch(() => ({}))
         throw new Error(data.error || `Save failed (${res.status})`)
       }
+      const saved = await res.json().catch(() => null)
+
       el.classList.remove('saving')
       el.classList.add('saved')
       setTimeout(() => el.classList.remove('saved'), 1200)
@@ -351,6 +381,29 @@ for (const l of touched) {
         cls.push(`priority-${value || 'medium'}`)
         el.className = cls.join(' ')
       }
+
+      // Reflect server-side side effects (e.g. dismissing zeroes the score,
+      // editing the score may have re-tiered priority).
+      if (row && saved) {
+        const scoreInput = row.querySelector('input.crm-score-input') as HTMLInputElement | null
+        if (scoreInput && saved.actionability_score !== undefined) {
+          scoreInput.value = String(saved.actionability_score ?? 0)
+          const tier = (saved.actionability_score || 0) >= 9 ? 'hot'
+            : (saved.actionability_score || 0) >= 7 ? 'warm'
+            : (saved.actionability_score || 0) >= 5 ? 'watch' : 'low'
+          const cls = Array.from(scoreInput.classList).filter(c => !c.startsWith('score-tier-'))
+          cls.push(`score-tier-${tier}`)
+          scoreInput.className = cls.join(' ')
+        }
+        const prioritySelect = row.querySelector('select.crm-priority-select') as HTMLSelectElement | null
+        if (prioritySelect && saved.priority) {
+          prioritySelect.value = saved.priority
+          const cls = Array.from(prioritySelect.classList).filter(c => !c.startsWith('priority-'))
+          cls.push(`priority-${saved.priority}`)
+          prioritySelect.className = cls.join(' ')
+        }
+      }
+
       applyFilters()
     } catch (err: any) {
       el.classList.remove('saving')

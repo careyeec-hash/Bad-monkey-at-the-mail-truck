@@ -80,6 +80,22 @@ const statusLabels: Record<string, string> = {
       ))}
     </div>
 
+    <!-- Editable score -->
+    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #E5E7EB; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+      <span style="font-size: 12px; color: #9CA3AF;">Score (0–10):</span>
+      <input
+        type="number"
+        id="score-input"
+        data-lead-id={lead.id}
+        min="0"
+        max="10"
+        step="1"
+        value={lead.actionability_score ?? 0}
+        style="width: 72px; padding: 4px 8px; font-size: 14px; font-weight: 600; border: 1px solid #D1D5DB; border-radius: 6px; color: #111827; text-align: center;"
+      />
+      <span id="score-save-status" style="font-size: 12px; color: #9CA3AF;"></span>
+    </div>
+
     <!-- Enrichment status -->
     <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #E5E7EB; display: flex; align-items: center; gap: 10px; font-size: 12px; flex-wrap: wrap;">
       <span style="color: #9CA3AF;">Enrichment:</span>
@@ -458,6 +474,48 @@ const statusLabels: Record<string, string> = {
 </Layout>
 
 <script>
+  // Editable score — save on change/blur
+  const scoreInput = document.getElementById('score-input') as HTMLInputElement | null
+  const scoreStatus = document.getElementById('score-save-status')
+  if (scoreInput) {
+    const saveScore = async () => {
+      const leadId = scoreInput.dataset.leadId
+      let val = parseInt(scoreInput.value, 10)
+      if (!Number.isFinite(val)) val = 0
+      val = Math.max(0, Math.min(10, val))
+      scoreInput.value = String(val)
+
+      if (scoreStatus) scoreStatus.textContent = 'Saving...'
+      try {
+        const res = await fetch(`/api/leads/${leadId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ actionability_score: val })
+        })
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error(data.error || `Save failed (${res.status})`)
+        }
+        if (scoreStatus) {
+          scoreStatus.textContent = 'Saved'
+          scoreStatus.style.color = '#065F46'
+          setTimeout(() => { if (scoreStatus) scoreStatus.textContent = '' }, 1500)
+        }
+      } catch (err: any) {
+        if (scoreStatus) {
+          scoreStatus.textContent = err?.message || 'Save failed'
+          scoreStatus.style.color = '#991B1B'
+        }
+      }
+    }
+    scoreInput.addEventListener('change', saveScore)
+    scoreInput.addEventListener('blur', () => {
+      if (String(parseInt(scoreInput.value, 10)) !== scoreInput.dataset.lastSaved) {
+        saveScore()
+      }
+    })
+  }
+
   // Status change buttons
   document.querySelectorAll('.status-change-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
