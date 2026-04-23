@@ -250,6 +250,59 @@ html {
   .sidebar { display: none; }
   .main-content { margin-left: 0; padding-bottom: 72px; }
   .mobile-bar { display: flex; justify-content: space-around; }
+
+  /* Lead detail page: stack main grid and reflow fact strip */
+  .lead-main-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .fact-strip {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px 0 !important;
+  }
+  .fact-strip > div {
+    border-right: none !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+}
+
+/* Status action bar — hover/focus states per cluster */
+.status-btn-active:hover { background: #F9FAFB !important; border-color: #1E2761 !important; color: #1E2761 !important; }
+.status-btn-outcome:hover { filter: brightness(0.97); }
+.status-btn-archive:hover { background: #F3F4F6 !important; border-color: #D1D5DB !important; color: #374151 !important; }
+.status-change-btn:focus-visible,
+#standalone-feedback-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(30,39,97,0.25);
+}
+
+/* Inline-edit inputs — blend into text until hovered/focused */
+.inline-edit-input {
+  border: 1px solid transparent;
+  background: transparent;
+  color: #111827;
+  font-size: 13px;
+  font-family: inherit;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin: -2px -6px;
+  max-width: 100%;
+  transition: background 0.1s ease, border-color 0.1s ease;
+  cursor: pointer;
+}
+.inline-edit-input:hover {
+  background: #F9FAFB;
+  border-color: #E5E7EB;
+}
+.inline-edit-input:focus {
+  outline: none;
+  background: #FFFFFF;
+  border-color: #93C5FD;
+  box-shadow: 0 0 0 3px rgba(147,197,253,0.2);
+  cursor: text;
+}
+.inline-edit-input::placeholder {
+  color: #D1D5DB;
 }
 
 /* Forms */

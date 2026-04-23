@@ -25,6 +25,28 @@ const feedbackHistory = (lead.lead_feedback || []).sort((a: any, b: any) =>
   new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
 )
 
+// Merged activity stream for the right-rail Notes card. Feedback entries and
+// notes share a chronological view so Tom sees his "why I marked this lost"
+// reasoning in-line with other updates. Each item carries a _kind discriminator
+// so the template can pick the right treatment.
+type ActivityItem = {
+  _kind: 'note' | 'feedback'
+  created_at: string
+  // note fields
+  author?: string
+  text?: string
+  // feedback fields
+  sentiment?: string
+  category?: string
+  reasoning?: string
+  status_at_feedback?: string
+  generalize?: boolean
+}
+const activityItems: ActivityItem[] = [
+  ...notes.map((n: any) => ({ _kind: 'note' as const, ...n })),
+  ...feedbackHistory.map((f: any) => ({ _kind: 'feedback' as const, ...f })),
+].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
 // Categories kept in sync with the Opus calibration prompt. Labels are
 // human-readable; keys are persisted in lead_feedback.category.
 const negativeCategories: Array<[string, string]> = [
@@ -81,9 +103,20 @@ const statusLabels: Record<string, string> = {
   'no-bid': 'No-bid',
   'archived': 'Archived',
 }
+
+// Status action bar clusters. Each cluster filters out the lead's current
+// status so the active state isn't shown as a destination option.
+const activeStatuses = ['new', 'tracking', 'pursuing', 'market-intel'].filter(s => s !== lead.status)
+const outcomeStatuses = ['won', 'lost', 'no-bid'].filter(s => s !== lead.status)
+const archiveStatuses = ['dismissed', 'archived'].filter(s => s !== lead.status)
+const outcomeBtnStyle: Record<string, string> = {
+  'won': 'padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; border: 1px solid #A7F3D0; background: #ECFDF5; cursor: pointer; color: #065F46;',
+  'lost': 'padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; border: 1px solid #FECACA; background: #FEF2F2; cursor: pointer; color: #991B1B;',
+  'no-bid': 'padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; border: 1px solid #FECACA; background: #FEF2F2; cursor: pointer; color: #991B1B;',
+}
 ---
 
-<Layout title={lead.project_name}>
+<Layout title={lead.project_name} wide={true}>
   <a href="/leads" class="btn-ghost-custom" style="margin-bottom: 16px;">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
     Back to Pipeline
@@ -103,23 +136,71 @@ const statusLabels: Record<string, string> = {
       </div>
     </div>
 
-    <!-- Status change buttons -->
-    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #E5E7EB; display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
-      <span style="font-size: 12px; color: #9CA3AF; align-self: center; margin-right: 4px;">Move to:</span>
-      {statuses.filter(s => s !== lead.status).map(s => (
-        <button
-          class="status-change-btn"
-          data-lead-id={lead.id}
-          data-status={s}
-          style="padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; border: 1px solid #D1D5DB; background: white; cursor: pointer; color: #374151;"
-        >
-          {statusLabels[s] || (s.charAt(0).toUpperCase() + s.slice(1))}
-        </button>
-      ))}
+    <!-- Status change buttons — grouped: Active · Outcome · Archive -->
+    <div
+      role="group"
+      aria-label="Change status"
+      style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #E5E7EB; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;"
+    >
+      <span style="font-size: 12px; color: #9CA3AF; align-self: center;">Change status:</span>
+
+      {activeStatuses.length > 0 && (
+        <div style="display: inline-flex; gap: 6px;">
+          {activeStatuses.map(s => (
+            <button
+              class="status-change-btn status-btn-active"
+              data-lead-id={lead.id}
+              data-status={s}
+              style="padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; border: 1px solid #D1D5DB; background: white; cursor: pointer; color: #374151;"
+            >
+              {statusLabels[s] || (s.charAt(0).toUpperCase() + s.slice(1))}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {activeStatuses.length > 0 && outcomeStatuses.length > 0 && (
+        <span aria-hidden="true" style="width: 1px; height: 20px; background: #E5E7EB;"></span>
+      )}
+
+      {outcomeStatuses.length > 0 && (
+        <div style="display: inline-flex; gap: 6px;">
+          {outcomeStatuses.map(s => (
+            <button
+              class="status-change-btn status-btn-outcome"
+              data-lead-id={lead.id}
+              data-status={s}
+              style={outcomeBtnStyle[s]}
+            >
+              {statusLabels[s] || (s.charAt(0).toUpperCase() + s.slice(1))}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {outcomeStatuses.length > 0 && archiveStatuses.length > 0 && (
+        <span aria-hidden="true" style="width: 1px; height: 20px; background: #E5E7EB;"></span>
+      )}
+
+      {archiveStatuses.length > 0 && (
+        <div style="display: inline-flex; gap: 6px;">
+          {archiveStatuses.map(s => (
+            <button
+              class="status-change-btn status-btn-archive"
+              data-lead-id={lead.id}
+              data-status={s}
+              style="padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; border: 1px solid #E5E7EB; background: #F9FAFB; cursor: pointer; color: #6B7280;"
+            >
+              {statusLabels[s] || (s.charAt(0).toUpperCase() + s.slice(1))}
+            </button>
+          ))}
+        </div>
+      )}
+
       <button
         id="standalone-feedback-btn"
         data-lead-id={lead.id}
-        style="margin-left: auto; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; border: 1px solid #C7D2FE; background: #EEF2FF; cursor: pointer; color: #3730A3;"
+        style="margin-left: auto; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; border: 1px solid #C7D2FE; background: #EEF2FF; cursor: pointer; color: #3730A3;"
       >
         + Add Feedback
       </button>
@@ -167,46 +248,27 @@ const statusLabels: Record<string, string> = {
         Re-enrich on next run
       </button>
     </div>
+
+    {/* Fact strip — most-glanced facts, above the fold */}
+    <div class="fact-strip" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #E5E7EB; display: grid; grid-template-columns: repeat(6, 1fr); gap: 0;">
+      {[
+        { label: 'Est Value', value: lead.estimated_value || '—' },
+        { label: 'Stage', value: lead.stage || '—' },
+        { label: 'Bid Due', value: lead.bid_due_date ? new Date(lead.bid_due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' }) : '—' },
+        { label: 'Est Start', value: lead.estimated_start_date ? new Date(lead.estimated_start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' }) : '—' },
+        { label: 'GC', value: lead.gc_assigned ? (lead.gc_name || 'Assigned') : 'None' },
+        { label: 'Priority', value: lead.priority || '—' },
+      ].map((cell, i, arr) => (
+        <div style={`padding: 0 16px; ${i < arr.length - 1 ? 'border-right: 1px solid #F3F4F6;' : ''}`}>
+          <div style="font-size: 11px; font-weight: 600; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">{cell.label}</div>
+          <div style="font-size: 14px; font-weight: 600; color: #111827;">{cell.value}</div>
+        </div>
+      ))}
+    </div>
   </div>
 
-  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
-    <!-- Project Details -->
-    <div class="card-surface" style="padding: 24px;">
-      <h2 style="font-size: 15px; font-weight: 600; color: #111827; margin-bottom: 16px;">Project Details</h2>
-      <dl style="display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 14px;">
-        <dt style="color: #6B7280; font-weight: 500;">Type</dt>
-        <dd style="color: #111827;">{lead.project_type || '—'}</dd>
-        <dt style="color: #6B7280; font-weight: 500;">Stage</dt>
-        <dd style="color: #111827;">{lead.stage || '—'}</dd>
-        <dt style="color: #6B7280; font-weight: 500;">Est. Value</dt>
-        <dd style="color: #111827;">{lead.estimated_value || '—'}</dd>
-        <dt style="color: #6B7280; font-weight: 500;">GC Assigned</dt>
-        <dd style="color: #111827;">{lead.gc_assigned ? lead.gc_name || 'Yes' : 'No'}</dd>
-        <dt style="color: #6B7280; font-weight: 500;">Source</dt>
-        <dd style="color: #111827;">
-          {lead.source_url ? (
-            <a href={lead.source_url} target="_blank" rel="noopener" style="color: #4A6FA5; text-decoration: underline; display: inline-flex; align-items: center; gap: 4px;">
-              {lead.source_name || lead.source_type}
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-            </a>
-          ) : (
-            <span>
-              {lead.source_name || lead.source_type}
-              {' '}
-              <a href={`https://www.google.com/search?q=${encodeURIComponent(lead.project_name + ' Arizona construction')}`} target="_blank" rel="noopener" style="font-size: 11px; color: #4A6FA5; text-decoration: underline;">search ↗</a>
-            </span>
-          )}
-        </dd>
-        <dt style="color: #6B7280; font-weight: 500;">Source Date</dt>
-        <dd style="color: #111827;">{lead.briefing_date ? new Date(lead.briefing_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</dd>
-        <dt style="color: #6B7280; font-weight: 500;">Priority</dt>
-        <dd style="color: #111827;">{lead.priority || '—'}</dd>
-        <dt style="color: #6B7280; font-weight: 500;">First Seen</dt>
-        <dd style="color: #111827;">{new Date(lead.first_seen_at || lead.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</dd>
-      </dl>
-    </div>
-
-    <!-- Analysis & Action -->
+  <div class="lead-main-grid" style="display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; margin-bottom: 20px;">
+    <!-- Analysis & Action (wide left column) -->
     <div class="card-surface" style="padding: 24px;">
       {lead.action_item && (
         <div style="padding: 14px; background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 8px; margin-bottom: 16px;">
@@ -253,6 +315,178 @@ const statusLabels: Record<string, string> = {
           </a>
         </div>
       )}
+    </div>
+
+    <!-- Right rail: Notes (top, sticky) + Project Meta (below) -->
+    <div style="display: flex; flex-direction: column; gap: 16px; min-width: 0;">
+      <!-- Notes & Activity -->
+      <div class="card-surface" style="padding: 20px;">
+        <h2 style="font-size: 15px; font-weight: 600; color: #111827; margin-bottom: 12px;">Notes & Activity</h2>
+
+        <form id="add-note-form" style="margin-bottom: 16px; display: flex; gap: 6px;">
+          <input type="hidden" id="note-lead-id" value={lead.id} />
+          <input type="text" id="note-text" class="form-input" placeholder="Add a note..." style="flex: 1; min-width: 0; padding: 8px 12px; font-size: 13px;" />
+          <button type="submit" class="btn-primary-custom" style="padding: 8px 14px; font-size: 13px; flex-shrink: 0;">Add</button>
+        </form>
+
+        <div id="notes-list" style="max-height: 420px; overflow-y: auto;">
+          {activityItems.length === 0 ? (
+            <p class="text-secondary" style="font-size: 13px;">No notes yet. Add one above.</p>
+          ) : (
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              {activityItems.map((item) => item._kind === 'note' ? (
+                <div style="padding: 10px 12px; background: #F9FAFB; border-radius: 8px;">
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 4px; gap: 8px;">
+                    <span style="font-size: 11px; font-weight: 600; color: #6B7280;">{item.author}</span>
+                    <span style="font-size: 11px; color: #9CA3AF; flex-shrink: 0;">{new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                  </div>
+                  <div style="font-size: 13px; color: #374151; line-height: 1.5; word-wrap: break-word;">{item.text}</div>
+                </div>
+              ) : (
+                <div style={`padding: 10px 12px; background: ${item.sentiment === 'positive' ? '#F0FDF4' : '#FEF2F2'}; border-left: 3px solid ${item.sentiment === 'positive' ? '#10B981' : '#EF4444'}; border-radius: 8px;`}>
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 6px; gap: 8px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                      <span style={`font-size: 10px; padding: 1px 8px; background: ${item.sentiment === 'positive' ? '#ECFDF5' : '#FEF2F2'}; color: ${item.sentiment === 'positive' ? '#065F46' : '#991B1B'}; border: 1px solid ${item.sentiment === 'positive' ? '#A7F3D0' : '#FECACA'}; border-radius: 999px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;`}>
+                        {item.sentiment === 'positive' ? 'Liked' : 'Rejected'}
+                      </span>
+                      <span style="font-size: 12px; font-weight: 600; color: #111827;">{item.category ? (categoryLabel[item.category] || item.category) : ''}</span>
+                    </div>
+                    <span style="font-size: 11px; color: #9CA3AF; flex-shrink: 0;">{new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                  </div>
+                  {item.reasoning && (
+                    <div style="font-size: 13px; color: #374151; line-height: 1.5; word-wrap: break-word;">{item.reasoning}</div>
+                  )}
+                  {item.status_at_feedback && (
+                    <div style="font-size: 10px; color: #9CA3AF; margin-top: 4px;">on move to: {item.status_at_feedback}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <!-- Project Meta -->
+      <div class="card-surface" style="padding: 20px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+          <h2 style="font-size: 15px; font-weight: 600; color: #111827; margin: 0;">Project Meta</h2>
+          <span id="meta-save-status" style="font-size: 11px; color: #9CA3AF;"></span>
+        </div>
+        <dl style="display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 13px; align-items: center;">
+          {/* Editable fields — Tom updates these as the lead progresses */}
+          <dt style="color: #6B7280; font-weight: 500;">Stage</dt>
+          <dd>
+            <input
+              class="inline-edit-input"
+              type="text"
+              data-lead-id={lead.id}
+              data-field="stage"
+              value={lead.stage || ''}
+              placeholder="planning, permitted…"
+              style="width: 100%;"
+            />
+          </dd>
+
+          <dt style="color: #6B7280; font-weight: 500;">Priority</dt>
+          <dd>
+            <select
+              class="inline-edit-input inline-edit-select"
+              data-lead-id={lead.id}
+              data-field="priority"
+              style="width: 100%;"
+            >
+              {['', 'high', 'medium', 'low'].map(p => (
+                <option value={p} selected={(lead.priority || '') === p}>{p || '—'}</option>
+              ))}
+            </select>
+          </dd>
+
+          <dt style="color: #6B7280; font-weight: 500;">Bid Due</dt>
+          <dd>
+            <input
+              class="inline-edit-input"
+              type="date"
+              data-lead-id={lead.id}
+              data-field="bid_due_date"
+              value={lead.bid_due_date || ''}
+              style="width: 100%;"
+            />
+          </dd>
+
+          <dt style="color: #6B7280; font-weight: 500;">Est Start</dt>
+          <dd>
+            <input
+              class="inline-edit-input"
+              type="date"
+              data-lead-id={lead.id}
+              data-field="estimated_start_date"
+              value={lead.estimated_start_date || ''}
+              style="width: 100%;"
+            />
+          </dd>
+
+          <dt style="color: #6B7280; font-weight: 500;">Next Action</dt>
+          <dd>
+            <input
+              class="inline-edit-input"
+              type="date"
+              data-lead-id={lead.id}
+              data-field="next_action_date"
+              value={lead.next_action_date || ''}
+              style="width: 100%;"
+            />
+          </dd>
+
+          <dt style="color: #6B7280; font-weight: 500;">Assigned To</dt>
+          <dd>
+            <input
+              class="inline-edit-input"
+              type="text"
+              data-lead-id={lead.id}
+              data-field="assigned_to"
+              value={lead.assigned_to || ''}
+              placeholder="Tom Keilty"
+              style="width: 100%;"
+            />
+          </dd>
+
+          {/* Read-only reference fields — stamps from ingestion */}
+          <dt style="color: #6B7280; font-weight: 500; padding-top: 8px; border-top: 1px solid #F3F4F6;">Type</dt>
+          <dd style="color: #111827; padding-top: 8px; border-top: 1px solid #F3F4F6;">{lead.project_type || '—'}</dd>
+          <dt style="color: #6B7280; font-weight: 500;">Source</dt>
+          <dd style="color: #111827;">
+            {lead.source_url ? (
+              <a href={lead.source_url} target="_blank" rel="noopener" style="color: #4A6FA5; text-decoration: underline; display: inline-flex; align-items: center; gap: 4px;">
+                {lead.source_name || lead.source_type}
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              </a>
+            ) : (
+              <span>
+                {lead.source_name || lead.source_type}
+                {' '}
+                <a href={`https://www.google.com/search?q=${encodeURIComponent(lead.project_name + ' Arizona construction')}`} target="_blank" rel="noopener" style="font-size: 11px; color: #4A6FA5; text-decoration: underline;">search ↗</a>
+              </span>
+            )}
+          </dd>
+          <dt style="color: #6B7280; font-weight: 500;">Source Date</dt>
+          <dd style="color: #111827;">{lead.briefing_date ? new Date(lead.briefing_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</dd>
+          <dt style="color: #6B7280; font-weight: 500;">First Seen</dt>
+          <dd style="color: #111827;">{new Date(lead.first_seen_at || lead.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</dd>
+          {lead.permit_number && (<><dt style="color: #6B7280; font-weight: 500;">Permit #</dt><dd style="color: #111827;">{lead.permit_number}</dd></>)}
+          {lead.referral_from && (<><dt style="color: #6B7280; font-weight: 500;">Referral</dt><dd style="color: #111827;">{lead.referral_from}</dd></>)}
+        </dl>
+
+        {(lead.status === 'won' || lead.status === 'lost' || lead.status === 'no-bid') && (lead.contract_value || lead.lost_to || lead.lost_reason) && (
+          <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #E5E7EB;">
+            <div style="font-size: 11px; font-weight: 600; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Outcome</div>
+            <dl style="display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 13px;">
+              {lead.contract_value && (<><dt style="color: #6B7280; font-weight: 500;">Contract</dt><dd style="color: #065F46; font-weight: 600;">{lead.contract_value}</dd></>)}
+              {lead.lost_to && (<><dt style="color: #6B7280; font-weight: 500;">Lost To</dt><dd style="color: #991B1B;">{lead.lost_to}</dd></>)}
+              {lead.lost_reason && (<><dt style="color: #6B7280; font-weight: 500;">Reason</dt><dd style="color: #374151;">{lead.lost_reason}</dd></>)}
+            </dl>
+          </div>
+        )}
+      </div>
     </div>
   </div>
 
@@ -318,11 +552,14 @@ const statusLabels: Record<string, string> = {
     </div>
   )}
 
-  <!-- Outreach Generator -->
-  <div class="card-surface" style="padding: 24px; margin-bottom: 20px;">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-      <h2 style="font-size: 15px; font-weight: 600; color: #111827;">Outreach Generator</h2>
-      <button type="button" id="generate-outreach-btn" class="btn-primary-custom" style="padding: 8px 16px; font-size: 13px;" data-lead-json={JSON.stringify({
+  <!-- Outreach Generator — compact row until generated, then expands via JS state -->
+  <div class="card-surface" style="padding: 16px 20px; margin-bottom: 20px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+      <div>
+        <h2 style="font-size: 15px; font-weight: 600; color: #111827; margin: 0;">Outreach Generator</h2>
+        <p style="font-size: 12px; color: #9CA3AF; margin: 2px 0 0;">Drafts a personalized email and LinkedIn message from deep research on this project.</p>
+      </div>
+      <button type="button" id="generate-outreach-btn" class="btn-primary-custom" style="padding: 8px 16px; font-size: 13px; flex-shrink: 0;" data-lead-json={JSON.stringify({
         project_name: lead.project_name,
         address: lead.address,
         project_type: lead.project_type,
@@ -342,7 +579,7 @@ const statusLabels: Record<string, string> = {
     </div>
 
     {lead.lead_contacts && lead.lead_contacts.length > 0 && (
-      <div style="margin-bottom: 12px;">
+      <div style="margin-top: 12px;">
         <label class="form-label" for="outreach-contact-select">Target contact (optional)</label>
         <select id="outreach-contact-select" class="form-input" style="max-width: 300px;">
           <option value="">General outreach (no specific contact)</option>
@@ -360,7 +597,7 @@ const statusLabels: Record<string, string> = {
 
     <div id="outreach-error" style="display: none; padding: 14px; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; color: #991B1B; font-size: 14px; margin-bottom: 12px;"></div>
 
-    <div id="outreach-results" style="display: none;">
+    <div id="outreach-results" style="display: none; margin-top: 16px;">
       <!-- Research -->
       <div style="margin-bottom: 16px;">
         <div style="font-size: 12px; font-weight: 700; color: #065F46; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">Research Summary</div>
@@ -389,15 +626,13 @@ const statusLabels: Record<string, string> = {
       </div>
     </div>
 
-    <div id="outreach-empty" style="padding: 16px; text-align: center;">
-      <p style="font-size: 13px; color: #9CA3AF;">Click "Draft Outreach" to generate a personalized email and LinkedIn message based on deep research of this project.</p>
-    </div>
+    <div id="outreach-empty" style="display: none;"></div>
   </div>
 
   <!-- Contacts (people) -->
-  <div class="card-surface" style="padding: 24px; margin-bottom: 20px;">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-      <h2 style="font-size: 15px; font-weight: 600; color: #111827;">Contacts</h2>
+  <div class="card-surface" style="padding: 20px; margin-bottom: 20px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+      <h2 style="font-size: 15px; font-weight: 600; color: #111827; margin: 0;">Contacts</h2>
       <button type="button" id="toggle-contact-form" style="font-size: 13px; color: #4A6FA5; background: none; border: none; cursor: pointer; font-weight: 500;">+ Add Contact</button>
     </div>
 
@@ -480,7 +715,7 @@ const statusLabels: Record<string, string> = {
         ))}
       </div>
     ) : (
-      <p class="text-secondary" id="no-contacts-msg">No contacts yet. Add people involved in this project.</p>
+      <p class="text-muted" id="no-contacts-msg" style="font-size: 12px; margin: 0;">No contacts yet — use “+ Add Contact” above.</p>
     )}
   </div>
 
@@ -646,36 +881,6 @@ const statusLabels: Record<string, string> = {
     </div>
   </div>
 
-  <!-- Notes -->
-  <div class="card-surface" style="padding: 24px;">
-    <h2 style="font-size: 15px; font-weight: 600; color: #111827; margin-bottom: 16px;">Notes & Activity</h2>
-
-    <!-- Add note form -->
-    <form id="add-note-form" style="margin-bottom: 20px; display: flex; gap: 8px;">
-      <input type="hidden" id="note-lead-id" value={lead.id} />
-      <input type="text" id="note-text" class="form-input" placeholder="Add a note..." style="flex: 1;" />
-      <button type="submit" class="btn-primary-custom" style="padding: 10px 16px; flex-shrink: 0;">Add</button>
-    </form>
-
-    <div id="notes-list">
-      {notes.length === 0 ? (
-        <p class="text-secondary">No notes yet.</p>
-      ) : (
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          {notes.map((note: any) => (
-            <div style="padding: 12px; background: #F9FAFB; border-radius: 8px;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                <span style="font-size: 12px; font-weight: 600; color: #6B7280;">{note.author}</span>
-                <span style="font-size: 12px; color: #9CA3AF;">{new Date(note.created_at).toLocaleDateString()}</span>
-              </div>
-              <div style="font-size: 14px; color: #374151;">{note.text}</div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  </div>
-
   <!-- Feedback History — Tom's calibration on this lead, drives Opus scoring on future runs -->
   <div class="card-surface" style="padding: 24px; margin-top: 20px;">
     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
@@ -831,6 +1036,45 @@ const statusLabels: Record<string, string> = {
       }
     })
   }
+
+  // Inline-edit for Project Meta fields — click-to-edit, save on change/blur.
+  // Empty string → null so Supabase clears the field instead of storing ''.
+  const metaStatus = document.getElementById('meta-save-status')
+  document.querySelectorAll<HTMLInputElement | HTMLSelectElement>('.inline-edit-input').forEach((el) => {
+    el.dataset.lastSaved = el.value
+    const saveField = async () => {
+      const field = el.dataset.field
+      const leadId = el.dataset.leadId
+      if (!field || !leadId) return
+      const raw = el.value.trim()
+      if (raw === el.dataset.lastSaved) return
+      if (metaStatus) { metaStatus.textContent = 'Saving…'; metaStatus.style.color = '#9CA3AF' }
+      try {
+        const res = await fetch(`/api/leads/${leadId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [field]: raw === '' ? null : raw }),
+        })
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error(data.error || `Save failed (${res.status})`)
+        }
+        el.dataset.lastSaved = el.value
+        if (metaStatus) {
+          metaStatus.textContent = 'Saved'
+          metaStatus.style.color = '#065F46'
+          setTimeout(() => { if (metaStatus && metaStatus.textContent === 'Saved') metaStatus.textContent = '' }, 1500)
+        }
+      } catch (err: any) {
+        if (metaStatus) {
+          metaStatus.textContent = err?.message || 'Save failed'
+          metaStatus.style.color = '#991B1B'
+        }
+      }
+    }
+    el.addEventListener('change', saveField)
+    el.addEventListener('blur', saveField)
+  })
 
   // --- Feedback modal state + helpers ---
   // Negative/positive status transitions trigger the modal (required reason
