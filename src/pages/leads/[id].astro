@@ -38,10 +38,11 @@ const enrichedOrgs = Array.from(contactsByOrg.values())
 // Pull the latest enrichment-agent note (warm-intro angle, firm summary)
 const enrichmentNote = notes.find((n: any) => n.author === 'enrichment-agent')
 
-const statuses = ['new', 'tracking', 'pursuing', 'market-intel', 'won', 'lost', 'no-bid', 'dismissed']
+const statuses = ['new', 'tracking', 'pursuing', 'market-intel', 'won', 'lost', 'no-bid', 'dismissed', 'archived']
 const statusLabels: Record<string, string> = {
   'market-intel': 'Market Intel',
   'no-bid': 'No-bid',
+  'archived': 'Archived',
 }
 ---
 

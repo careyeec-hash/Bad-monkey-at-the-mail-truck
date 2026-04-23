@@ -23,8 +23,8 @@ const touched = leads.filter((l: any) =>
   l.contract_value
 )
 
-const statuses = ['new', 'tracking', 'pursuing', 'market-intel', 'won', 'lost', 'no-bid', 'dismissed', 'stale']
-const statusLabel = (s: string) => s === 'market-intel' ? 'Market Intel' : s === 'no-bid' ? 'No-bid' : (s.charAt(0).toUpperCase() + s.slice(1))
+const statuses = ['new', 'tracking', 'pursuing', 'market-intel', 'won', 'lost', 'no-bid', 'dismissed', 'stale', 'archived']
+const statusLabel = (s: string) => s === 'market-intel' ? 'Market Intel' : s === 'no-bid' ? 'No-bid' : s === 'archived' ? 'Archived' : (s.charAt(0).toUpperCase() + s.slice(1))
 const priorities = ['high', 'medium', 'low']
 
 function fmtDate(d: string | null) {
@@ -49,14 +49,21 @@ for (const l of touched) {
   <!-- Filter bar -->
   <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;">
     <input type="text" id="crm-search" class="form-input" placeholder="Search project, address, GC..." style="max-width: 320px; flex: 1; min-width: 200px;" />
-    <button class="crm-status-chip active" data-status="all">All <span class="chip-count">{touched.length}</span></button>
-    {statuses.filter(s => statusCounts[s] > 0).map(s => (
+    <button class="crm-status-chip active" data-status="all">All <span class="chip-count">{touched.filter((l: any) => l.status !== 'archived').length}</span></button>
+    {statuses.filter(s => s !== 'archived' && statusCounts[s] > 0).map(s => (
       <button class={`crm-status-chip status-chip-${s}`} data-status={s}>
         <span class:list={['status-dot', `status-${s}`]} style="width: 6px; height: 6px;"></span>
         {statusLabel(s)}
         <span class="chip-count">{statusCounts[s]}</span>
       </button>
     ))}
+    {statusCounts['archived'] > 0 && (
+      <button class="crm-status-chip status-chip-archived" data-status="archived" style="margin-left: auto;">
+        <span class:list={['status-dot', 'status-archived']} style="width: 6px; height: 6px;"></span>
+        Archived
+        <span class="chip-count">{statusCounts['archived']}</span>
+      </button>
+    )}
   </div>
 
   {touched.length > 0 ? (
@@ -318,7 +325,11 @@ for (const l of touched) {
     rows.forEach(row => {
       const el = row as HTMLElement
       const matchSearch = !q || (el.dataset.search || '').includes(q)
-      const matchStatus = activeStatus === 'all' || el.dataset.status === activeStatus
+      const isArchived = el.dataset.status === 'archived'
+      let matchStatus
+      if (activeStatus === 'all') matchStatus = !isArchived
+      else if (activeStatus === 'archived') matchStatus = isArchived
+      else matchStatus = el.dataset.status === activeStatus
       ;(el as HTMLTableRowElement).style.display = (matchSearch && matchStatus) ? '' : 'none'
     })
   }

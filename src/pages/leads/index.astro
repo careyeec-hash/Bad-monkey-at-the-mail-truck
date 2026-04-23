@@ -13,11 +13,14 @@ const { data: leads } = await supabase
 const sectors = [...new Set((leads || []).map((l: any) => l.project_type).filter(Boolean))].sort()
 
 // Per-status counts
-const statusList = ['new', 'tracking', 'pursuing', 'market-intel', 'won', 'lost', 'dismissed']
+const statusList = ['new', 'tracking', 'pursuing', 'market-intel', 'won', 'lost', 'dismissed', 'archived']
 const statusCounts: Record<string, number> = Object.fromEntries(statusList.map(s => [s, 0]))
 for (const l of (leads || [])) {
   if (l.status && statusCounts[l.status] !== undefined) statusCounts[l.status]++
 }
+
+// "All" excludes archived — the archived chip is the only way to see them.
+const activeTotal = (leads || []).filter((l: any) => l.status !== 'archived').length
 ---
 
 <Layout title="Lead Pipeline">
@@ -40,7 +43,7 @@ for (const l of (leads || [])) {
     <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
       <span style="font-size: 12px; color: #9CA3AF; font-weight: 500; min-width: 50px;">Status</span>
       <div style="display: flex; gap: 6px; flex-wrap: wrap;" id="status-bar">
-        <button class="filter-btn active" data-filter="all">All <span class="filter-count">{leads?.length || 0}</span></button>
+        <button class="filter-btn active" data-filter="all">All <span class="filter-count">{activeTotal}</span></button>
         <button class="filter-btn" data-filter="new">New <span class="filter-count">{statusCounts['new']}</span></button>
         <button class="filter-btn" data-filter="tracking">Tracking <span class="filter-count">{statusCounts['tracking']}</span></button>
         <button class="filter-btn" data-filter="pursuing">Pursuing <span class="filter-count">{statusCounts['pursuing']}</span></button>
@@ -48,6 +51,7 @@ for (const l of (leads || [])) {
         <button class="filter-btn" data-filter="won">Won <span class="filter-count">{statusCounts['won']}</span></button>
         <button class="filter-btn" data-filter="lost">Lost <span class="filter-count">{statusCounts['lost']}</span></button>
         <button class="filter-btn" data-filter="dismissed">Dismissed <span class="filter-count">{statusCounts['dismissed']}</span></button>
+        <button class="filter-btn" data-filter="archived" style="margin-left: auto;">Archived <span class="filter-count">{statusCounts['archived']}</span></button>
       </div>
     </div>
 
@@ -161,7 +165,12 @@ for (const l of (leads || [])) {
 
     rows.forEach(row => {
       const el = row as HTMLElement
-      const matchStatus = activeStatus === 'all' || el.dataset.status === activeStatus
+      // "all" excludes archived — the archived chip is the only way to see them.
+      const isArchived = el.dataset.status === 'archived'
+      let matchStatus
+      if (activeStatus === 'all') matchStatus = !isArchived
+      else if (activeStatus === 'archived') matchStatus = isArchived
+      else matchStatus = el.dataset.status === activeStatus
       const matchScore = scoreMatch(el.dataset.score || '0', activeScore)
       const matchSector = sector === 'all' || el.dataset.sector === sector
       const matchSearch = !search || (el.dataset.search || '').includes(search)

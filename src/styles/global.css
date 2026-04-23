@@ -136,6 +136,7 @@ html {
 .status-dismissed { background: #D1D5DB; }
 .status-stale { background: #D1D5DB; }
 .status-market-intel { background: #0EA5E9; }
+.status-archived { background: #94A3B8; }
 
 /* Fit pills */
 .fit-pill {

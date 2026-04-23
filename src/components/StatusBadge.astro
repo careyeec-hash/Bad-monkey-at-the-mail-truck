@@ -15,11 +15,13 @@ const dotClass: Record<string, string> = {
   'dismissed': 'status-dismissed',
   'stale': 'status-stale',
   'market-intel': 'status-market-intel',
+  'archived': 'status-archived',
 }
 
 const label: Record<string, string> = {
   'market-intel': 'Market Intel',
   'no-bid': 'No-bid',
+  'archived': 'Archived',
 }
 const display = label[status] || (status.charAt(0).toUpperCase() + status.slice(1))
 ---
