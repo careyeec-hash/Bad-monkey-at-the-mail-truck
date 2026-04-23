@@ -13,7 +13,6 @@ const { lead } = Astro.props
 let sourceHost = ''
 try { if (lead.source_url) sourceHost = new URL(lead.source_url).hostname.replace(/^www\./, '') } catch {}
 
-const value = lead.estimated_value && String(lead.estimated_value).trim()
 const stage = lead.stage && String(lead.stage).trim()
 const gcLabel = lead.gc_assigned
   ? (lead.gc_name ? `GC: ${lead.gc_name}` : 'GC: assigned')
@@ -22,7 +21,18 @@ const gcOpen = !lead.gc_assigned
 const why = lead.why_it_matters && String(lead.why_it_matters).trim()
 const score = lead.actionability_score || 0
 const sector = (lead.project_type || '').toLowerCase().trim()
-const searchText = [lead.project_name, lead.address, lead.source_name, lead.gc_name, lead.project_type].filter(Boolean).join(' ').toLowerCase()
+
+// Primary contact for the CRM list column — first person-type row (or
+// anything, if entity_type isn't populated on existing data).
+const contacts = Array.isArray(lead.lead_contacts) ? lead.lead_contacts : []
+const people = contacts.filter((c: any) => !c.entity_type || c.entity_type === 'person')
+const primaryContact = people[0] || contacts[0] || null
+const contactLabel = primaryContact
+  ? [primaryContact.name, primaryContact.role].filter(Boolean).join(' · ')
+  : null
+const extraContactCount = Math.max(0, contacts.length - 1)
+
+const searchText = [lead.project_name, lead.address, lead.source_name, lead.gc_name, lead.project_type, ...contacts.map((c: any) => c.name)].filter(Boolean).join(' ').toLowerCase()
 
 // Source date — prefer briefing_date, fall back to created_at
 const sourceDate = lead.briefing_date || lead.created_at
@@ -44,16 +54,21 @@ const sortName = (lead.project_name || '').toLowerCase()
       {lead.address || lead.source_name || '—'}
     </div>
     <div style="font-size: 12px; color: #4B5563; margin-top: 4px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center;">
-      <span style={`color: ${value ? '#111827' : '#9CA3AF'}; font-weight: ${value ? 600 : 400};`}>
-        {value || 'value: —'}
-      </span>
-      <span style="color: #D1D5DB;">·</span>
       <span style={`color: ${stage ? '#111827' : '#9CA3AF'};`}>
         {stage || 'stage: —'}
       </span>
       <span style="color: #D1D5DB;">·</span>
       <span style={`color: ${gcOpen ? '#B45309' : '#374151'}; font-weight: ${gcOpen ? 600 : 400};`}>
         {gcLabel}
+      </span>
+      <span style="color: #D1D5DB;">·</span>
+      <span style={`color: ${contactLabel ? '#111827' : '#9CA3AF'};`}>
+        {contactLabel ? (
+          <>
+            👤 {contactLabel}
+            {extraContactCount > 0 && <span style="color: #9CA3AF; font-weight: 400;"> +{extraContactCount}</span>}
+          </>
+        ) : 'contact: —'}
       </span>
       {sourceDateLabel && (
         <>

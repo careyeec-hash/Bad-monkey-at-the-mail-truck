@@ -5,7 +5,7 @@ export async function GET({ params }) {
 
   const { data, error } = await supabase
     .from('leads')
-    .select('*, lead_contacts(*), lead_notes(*), agent_updates(*)')
+    .select('*, lead_contacts(*), lead_notes(*), agent_updates(*), lead_feedback(*)')
     .eq('id', id)
     .single()
 
@@ -40,17 +40,96 @@ export async function PUT({ params, request }) {
     })
   }
 
-  // Handle special _addContact action
+  // Handle special _addContact action. entity_type defaults to 'person'
+  // server-side when the client didn't send it (older clients).
   if (body._addContact) {
-    const { lead_id, name, role, company, phone, email, notes } = body._addContact
-    const { error } = await supabase.from('lead_contacts').insert({
+    const { lead_id, name, role, company, phone, email, notes, entity_type } = body._addContact
+    const row = {
       lead_id: lead_id || id,
       name,
       role,
       company,
       phone,
       email,
-      notes
+      notes,
+      entity_type: entity_type || 'person'
+    }
+    let { error } = await supabase.from('lead_contacts').insert(row)
+
+    // Graceful fallback if entity_type column isn't yet in the database
+    // (migration pending) — retry without the column.
+    if (error && /entity_type/i.test(error.message || '')) {
+      delete row.entity_type
+      ;({ error } = await supabase.from('lead_contacts').insert(row))
+    }
+
+    if (error) {
+      return new Response(JSON.stringify({ error: error.message }), { status: 400 })
+    }
+
+    return new Response(JSON.stringify({ ok: true }), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+
+  // Update an existing contact/organization row by id.
+  if (body._updateContact) {
+    const { id: contactId, name, role, company, phone, email, notes, entity_type } = body._updateContact
+    if (!contactId) {
+      return new Response(JSON.stringify({ error: 'contact id required' }), { status: 400 })
+    }
+    const patch = { name, role, company, phone, email, notes, entity_type }
+    let { error } = await supabase.from('lead_contacts').update(patch).eq('id', contactId).eq('lead_id', id)
+
+    if (error && /entity_type/i.test(error.message || '')) {
+      delete patch.entity_type
+      ;({ error } = await supabase.from('lead_contacts').update(patch).eq('id', contactId).eq('lead_id', id))
+    }
+
+    if (error) {
+      return new Response(JSON.stringify({ error: error.message }), { status: 400 })
+    }
+
+    return new Response(JSON.stringify({ ok: true }), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+
+  // Delete a contact/organization row. Scoped to this lead so a stray
+  // id from elsewhere can't delete something off another lead.
+  if (body._deleteContact) {
+    const { id: contactId } = body._deleteContact
+    if (!contactId) {
+      return new Response(JSON.stringify({ error: 'contact id required' }), { status: 400 })
+    }
+    const { error } = await supabase.from('lead_contacts').delete().eq('id', contactId).eq('lead_id', id)
+
+    if (error) {
+      return new Response(JSON.stringify({ error: error.message }), { status: 400 })
+    }
+
+    return new Response(JSON.stringify({ ok: true }), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+
+  // Handle special _addFeedback action — Tom's calibration on a lead.
+  // Written by the feedback modal on negative/positive status transitions
+  // and by the standalone "+ Add Feedback" button. Rows with generalize=true
+  // are pulled into the Opus system prompt on the next agent run.
+  if (body._addFeedback) {
+    const { sentiment, category, reasoning, generalize, status_at_feedback } = body._addFeedback
+    if (!sentiment || !category) {
+      return new Response(JSON.stringify({ error: 'sentiment and category required' }), { status: 400 })
+    }
+    const { error } = await supabase.from('lead_feedback').insert({
+      lead_id: id,
+      author: 'Tom Keilty',
+      sentiment,
+      category,
+      reasoning: reasoning || null,
+      generalize: generalize !== false,
+      status_at_feedback: status_at_feedback || null
     })
 
     if (error) {

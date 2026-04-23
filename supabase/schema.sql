@@ -75,10 +75,12 @@ CREATE TABLE lead_contacts (
   phone         TEXT,
   email         TEXT,
   notes         TEXT,
+  entity_type   TEXT DEFAULT 'person',      -- 'person' | 'organization' (firm w/o a person)
   created_at    TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX idx_contacts_lead ON lead_contacts(lead_id);
+CREATE INDEX idx_contacts_entity_type ON lead_contacts(entity_type);
 
 -- ============================================
 -- LEAD_NOTES — activity log / notes on leads
@@ -107,6 +109,28 @@ CREATE TABLE agent_updates (
 );
 
 CREATE INDEX idx_updates_lead ON agent_updates(lead_id);
+
+-- ============================================
+-- LEAD_FEEDBACK — Tom's structured calibration on leads.
+-- Captured on status transitions (dismissed/lost/no-bid → negative,
+-- pursuing/won → positive) plus ad-hoc "+ Add Feedback". Rows with
+-- generalize=true are pulled into evaluate.js as Opus calibration
+-- context so scoring drifts toward Tom's taste over time.
+-- ============================================
+CREATE TABLE lead_feedback (
+  id                 UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  lead_id            TEXT REFERENCES leads(id) ON DELETE CASCADE,
+  author             TEXT NOT NULL DEFAULT 'Tom Keilty',
+  sentiment          TEXT NOT NULL,              -- 'positive' | 'negative'
+  category           TEXT NOT NULL,              -- too-large | wrong-sector | great-fit | ...
+  reasoning          TEXT,                       -- optional free-text "why"
+  generalize         BOOLEAN DEFAULT TRUE,       -- include in Opus calibration?
+  status_at_feedback TEXT,                       -- snapshot of lead.status at time of feedback
+  created_at         TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_feedback_lead ON lead_feedback(lead_id);
+CREATE INDEX idx_feedback_generalize ON lead_feedback(generalize, created_at DESC);
 
 -- ============================================
 -- SEEN_ITEMS — dedup tracking
@@ -222,4 +246,24 @@ CREATE TRIGGER leads_updated_at
 --
 --   ALTER TABLE leads ADD COLUMN first_seen_at TIMESTAMPTZ DEFAULT NOW();
 --   UPDATE leads SET first_seen_at = created_at WHERE first_seen_at IS NULL;
+-- ============================================
+
+-- ============================================
+-- MIGRATION: Add lead_feedback table to existing databases.
+-- Run this block in the Supabase SQL editor if upgrading from a schema
+-- that predates Tom's calibration loop:
+--
+--   CREATE TABLE lead_feedback (
+--     id                 UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+--     lead_id            TEXT REFERENCES leads(id) ON DELETE CASCADE,
+--     author             TEXT NOT NULL DEFAULT 'Tom Keilty',
+--     sentiment          TEXT NOT NULL,
+--     category           TEXT NOT NULL,
+--     reasoning          TEXT,
+--     generalize         BOOLEAN DEFAULT TRUE,
+--     status_at_feedback TEXT,
+--     created_at         TIMESTAMPTZ DEFAULT NOW()
+--   );
+--   CREATE INDEX idx_feedback_lead ON lead_feedback(lead_id);
+--   CREATE INDEX idx_feedback_generalize ON lead_feedback(generalize, created_at DESC);
 -- ============================================

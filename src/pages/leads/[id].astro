@@ -9,7 +9,7 @@ const { id } = Astro.params
 
 const { data: lead, error } = await supabase
   .from('leads')
-  .select('*, lead_contacts(*, enriched_organizations(*)), lead_notes(*, id, created_at, author, text), agent_updates(*)')
+  .select('*, lead_contacts(*, enriched_organizations(*)), lead_notes(*, id, created_at, author, text), agent_updates(*), lead_feedback(*)')
   .eq('id', id)
   .single()
 
@@ -21,11 +21,48 @@ const notes = (lead.lead_notes || []).sort((a: any, b: any) =>
   new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
 )
 
-// Group contacts by organization for the Firm Background panel.
+const feedbackHistory = (lead.lead_feedback || []).sort((a: any, b: any) =>
+  new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+)
+
+// Categories kept in sync with the Opus calibration prompt. Labels are
+// human-readable; keys are persisted in lead_feedback.category.
+const negativeCategories: Array<[string, string]> = [
+  ['too-large', 'Too large — beyond our scale'],
+  ['too-small', 'Too small — below our threshold'],
+  ['wrong-sector', 'Wrong sector / project type'],
+  ['wrong-geography', 'Wrong geography / submarket'],
+  ['wrong-timing', 'Bad timing (too early or already awarded)'],
+  ['gc-locked-in', 'GC already locked in'],
+  ['competitor-incumbent', 'Relationship conflict / competitor incumbent'],
+  ['low-margin', 'Low margin / commodity work'],
+  ['other-negative', 'Other — see comment'],
+]
+const positiveCategories: Array<[string, string]> = [
+  ['great-fit', 'Great fit — sweet spot'],
+  ['strong-developer', 'Strong developer / relationship'],
+  ['ideal-scale', 'Ideal scale / value'],
+  ['good-timing', 'Good timing — actionable now'],
+  ['relationship-advantage', 'Relationship advantage / warm intro'],
+  ['other-positive', 'Other — see comment'],
+]
+const categoryLabel: Record<string, string> = Object.fromEntries([
+  ...negativeCategories,
+  ...positiveCategories,
+])
+
+// Split lead_contacts into people vs organizations. entity_type='organization'
+// rows are firms tracked manually on this lead; everything else is a person.
+// Legacy rows with NULL entity_type are treated as people.
+const allContacts = lead.lead_contacts || []
+const people = allContacts.filter((c: any) => !c.entity_type || c.entity_type === 'person')
+const orgContacts = allContacts.filter((c: any) => c.entity_type === 'organization')
+
+// Group contacts by auto-enriched organization for the Firm Background panel.
 // Contacts without an org_id (e.g. manually-added or named-from-article)
 // don't appear here — they're listed in the Contacts section below.
 const contactsByOrg: Map<string, { org: any; contacts: any[] }> = new Map()
-for (const c of lead.lead_contacts || []) {
+for (const c of allContacts) {
   if (!c.enriched_organizations) continue
   const key = c.enriched_organizations.id
   if (!contactsByOrg.has(key)) {
@@ -67,7 +104,7 @@ const statusLabels: Record<string, string> = {
     </div>
 
     <!-- Status change buttons -->
-    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #E5E7EB; display: flex; gap: 6px; flex-wrap: wrap;">
+    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #E5E7EB; display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
       <span style="font-size: 12px; color: #9CA3AF; align-self: center; margin-right: 4px;">Move to:</span>
       {statuses.filter(s => s !== lead.status).map(s => (
         <button
@@ -79,6 +116,13 @@ const statusLabels: Record<string, string> = {
           {statusLabels[s] || (s.charAt(0).toUpperCase() + s.slice(1))}
         </button>
       ))}
+      <button
+        id="standalone-feedback-btn"
+        data-lead-id={lead.id}
+        style="margin-left: auto; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; border: 1px solid #C7D2FE; background: #EEF2FF; cursor: pointer; color: #3730A3;"
+      >
+        + Add Feedback
+      </button>
     </div>
 
     <!-- Editable score -->
@@ -350,7 +394,7 @@ const statusLabels: Record<string, string> = {
     </div>
   </div>
 
-  <!-- Contacts -->
+  <!-- Contacts (people) -->
   <div class="card-surface" style="padding: 24px; margin-bottom: 20px;">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
       <h2 style="font-size: 15px; font-weight: 600; color: #111827;">Contacts</h2>
@@ -382,8 +426,8 @@ const statusLabels: Record<string, string> = {
       </div>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
         <div>
-          <label class="form-label" for="contact-company">Company</label>
-          <input type="text" id="contact-company" class="form-input" placeholder="Company name" />
+          <label class="form-label" for="contact-company">Organization</label>
+          <input type="text" id="contact-company" class="form-input" placeholder="Firm / organization name" />
         </div>
         <div>
           <label class="form-label" for="contact-phone">Phone</label>
@@ -406,26 +450,31 @@ const statusLabels: Record<string, string> = {
       </div>
     </form>
 
-    {lead.lead_contacts && lead.lead_contacts.length > 0 ? (
-      <div style="display: flex; flex-direction: column; gap: 8px;" id="contacts-list">
-        {lead.lead_contacts.map((c: any) => (
-          <div style="display: flex; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid #F3F4F6;">
-            <div style="width: 32px; height: 32px; background: #E5E7EB; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #6B7280; flex-shrink: 0;">{c.name?.charAt(0) || '?'}</div>
-            <div style="flex: 1; min-width: 0;">
-              <div style="font-size: 14px; font-weight: 500; color: #111827;">{c.name}</div>
-              <div style="font-size: 12px; color: #9CA3AF;">{[c.role, c.company].filter(Boolean).join(' · ')}</div>
-            </div>
-            <div style="display: flex; gap: 8px; flex-shrink: 0;">
-              {c.phone && (
-                <a href={`tel:${c.phone}`} style="font-size: 12px; color: #4A6FA5; text-decoration: none;" title={c.phone}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                </a>
-              )}
-              {c.email && (
-                <a href={`mailto:${c.email}`} style="font-size: 12px; color: #4A6FA5; text-decoration: none;" title={c.email}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                </a>
-              )}
+    {people.length > 0 ? (
+      <div style="display: flex; flex-direction: column; gap: 4px;" id="contacts-list">
+        {people.map((c: any) => (
+          <div class="contact-row" data-contact-id={c.id} data-lead-id={lead.id} data-entity-type="person"
+               data-name={c.name || ''} data-role={c.role || ''} data-company={c.company || ''}
+               data-phone={c.phone || ''} data-email={c.email || ''} data-notes={c.notes || ''}>
+            <div class="contact-view" style="display: flex; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid #F3F4F6; cursor: pointer;">
+              <div style="width: 32px; height: 32px; background: #E5E7EB; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #6B7280; flex-shrink: 0;">{c.name?.charAt(0) || '?'}</div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 14px; font-weight: 500; color: #111827;">{c.name}</div>
+                <div style="font-size: 12px; color: #9CA3AF;">{[c.role, c.company].filter(Boolean).join(' · ')}</div>
+              </div>
+              <div style="display: flex; gap: 8px; flex-shrink: 0; align-items: center;">
+                {c.phone && (
+                  <a href={`tel:${c.phone}`} onclick="event.stopPropagation()" style="font-size: 12px; color: #4A6FA5; text-decoration: none;" title={c.phone}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  </a>
+                )}
+                {c.email && (
+                  <a href={`mailto:${c.email}`} onclick="event.stopPropagation()" style="font-size: 12px; color: #4A6FA5; text-decoration: none;" title={c.email}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                  </a>
+                )}
+                <span style="font-size: 11px; color: #9CA3AF;">edit ✎</span>
+              </div>
             </div>
           </div>
         ))}
@@ -433,6 +482,168 @@ const statusLabels: Record<string, string> = {
     ) : (
       <p class="text-secondary" id="no-contacts-msg">No contacts yet. Add people involved in this project.</p>
     )}
+  </div>
+
+  <!-- Organizations (firms) -->
+  <div class="card-surface" style="padding: 24px; margin-bottom: 20px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+      <h2 style="font-size: 15px; font-weight: 600; color: #111827;">Organizations</h2>
+      <button type="button" id="toggle-org-form" style="font-size: 13px; color: #4A6FA5; background: none; border: none; cursor: pointer; font-weight: 500;">+ Add Organization</button>
+    </div>
+
+    <form id="add-org-form" style="display: none; margin-bottom: 20px; padding: 16px; background: #F9FAFB; border-radius: 8px; border: 1px solid #E5E7EB;">
+      <input type="hidden" id="org-lead-id" value={lead.id} />
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+        <div>
+          <label class="form-label" for="org-name">Organization Name *</label>
+          <input type="text" id="org-name" class="form-input" required placeholder="e.g. Sundt Construction" />
+        </div>
+        <div>
+          <label class="form-label" for="org-role">Type</label>
+          <select id="org-role" class="form-input">
+            <option value="">Select...</option>
+            <option value="Developer">Developer</option>
+            <option value="Owner">Owner</option>
+            <option value="Architect">Architect</option>
+            <option value="GC">General Contractor</option>
+            <option value="Engineer">Engineer</option>
+            <option value="Subcontractor">Subcontractor</option>
+            <option value="Broker">Broker</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+        <div>
+          <label class="form-label" for="org-website">Website</label>
+          <input type="text" id="org-website" class="form-input" placeholder="https://example.com" />
+        </div>
+        <div>
+          <label class="form-label" for="org-phone">Phone</label>
+          <input type="tel" id="org-phone" class="form-input" placeholder="480-555-1234" />
+        </div>
+      </div>
+      <div style="margin-bottom: 12px;">
+        <label class="form-label" for="org-notes">Notes</label>
+        <input type="text" id="org-notes" class="form-input" placeholder="Relationship / context" />
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button type="submit" class="btn-primary-custom" style="padding: 8px 16px; font-size: 13px;" id="save-org-btn">Save Organization</button>
+        <button type="button" id="cancel-org" class="btn-ghost-custom" style="padding: 8px 16px; font-size: 13px;">Cancel</button>
+      </div>
+    </form>
+
+    {orgContacts.length > 0 ? (
+      <div style="display: flex; flex-direction: column; gap: 4px;" id="orgs-list">
+        {orgContacts.map((c: any) => {
+          // Website stored in the notes field as "Website: <url>" when
+          // captured via the Organizations form; split back out for display.
+          const notesStr = c.notes || ''
+          const webMatch = notesStr.match(/^Website:\s*(\S+)\s*(?:—\s*)?(.*)$/s)
+          const website = webMatch ? webMatch[1] : ''
+          const noteRest = webMatch ? webMatch[2].trim() : notesStr
+          return (
+            <div class="org-row" data-contact-id={c.id} data-lead-id={lead.id} data-entity-type="organization"
+                 data-name={c.name || ''} data-role={c.role || ''} data-company={c.company || ''}
+                 data-phone={c.phone || ''} data-email={c.email || ''} data-notes={c.notes || ''}
+                 data-website={website} data-note-rest={noteRest}>
+              <div class="org-view" style="display: flex; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid #F3F4F6; cursor: pointer;">
+                <div style="width: 32px; height: 32px; background: #EEF2FF; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #3730A3; flex-shrink: 0;">🏢</div>
+                <div style="flex: 1; min-width: 0;">
+                  <div style="font-size: 14px; font-weight: 500; color: #111827;">{c.name}</div>
+                  <div style="font-size: 12px; color: #9CA3AF;">{[c.role, noteRest || null].filter(Boolean).join(' · ') || '—'}</div>
+                </div>
+                <div style="display: flex; gap: 8px; flex-shrink: 0; align-items: center;">
+                  {website && (
+                    <a href={website.startsWith('http') ? website : `https://${website}`} target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size: 11px; color: #4A6FA5; text-decoration: underline;">website ↗</a>
+                  )}
+                  {c.phone && (
+                    <a href={`tel:${c.phone}`} onclick="event.stopPropagation()" style="font-size: 12px; color: #4A6FA5; text-decoration: none;" title={c.phone}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    </a>
+                  )}
+                  <span style="font-size: 11px; color: #9CA3AF;">edit ✎</span>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    ) : (
+      <p class="text-secondary">No organizations added yet. Track firms (developers, GCs, architects) involved in this project.</p>
+    )}
+  </div>
+
+  <!-- Edit Contact / Organization Modal — opened by clicking any contact or org row -->
+  <div id="edit-entity-modal" data-lead-id={lead.id} style="display: none; position: fixed; inset: 0; background: rgba(17, 24, 39, 0.5); z-index: 100; align-items: center; justify-content: center; padding: 16px;">
+    <div style="background: white; border-radius: 12px; max-width: 560px; width: 100%; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 id="edit-entity-title" style="font-size: 16px; font-weight: 700; color: #111827; margin: 0;">Edit Contact</h3>
+        <button type="button" id="edit-entity-close" style="background: none; border: none; cursor: pointer; font-size: 22px; color: #9CA3AF; line-height: 1;">&times;</button>
+      </div>
+
+      <form id="edit-entity-form">
+        <input type="hidden" id="edit-entity-id" />
+        <input type="hidden" id="edit-entity-type" />
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <label class="form-label" for="edit-entity-name"><span id="edit-name-label">Name</span> *</label>
+            <input type="text" id="edit-entity-name" class="form-input" required />
+          </div>
+          <div>
+            <label class="form-label" for="edit-entity-role"><span id="edit-role-label">Role</span></label>
+            <select id="edit-entity-role" class="form-input">
+              <option value="">Select...</option>
+              <option value="Developer">Developer</option>
+              <option value="Owner">Owner</option>
+              <option value="Architect">Architect</option>
+              <option value="GC">General Contractor</option>
+              <option value="Engineer">Engineer</option>
+              <option value="Subcontractor">Subcontractor</option>
+              <option value="Broker">Broker</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="edit-company-row" style="margin-bottom: 12px;">
+          <label class="form-label" for="edit-entity-company">Organization</label>
+          <input type="text" id="edit-entity-company" class="form-input" placeholder="Firm / organization name" />
+        </div>
+
+        <div id="edit-website-row" style="display: none; margin-bottom: 12px;">
+          <label class="form-label" for="edit-entity-website">Website</label>
+          <input type="text" id="edit-entity-website" class="form-input" placeholder="https://example.com" />
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <label class="form-label" for="edit-entity-phone">Phone</label>
+            <input type="tel" id="edit-entity-phone" class="form-input" />
+          </div>
+          <div>
+            <label class="form-label" for="edit-entity-email">Email</label>
+            <input type="email" id="edit-entity-email" class="form-input" />
+          </div>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label class="form-label" for="edit-entity-notes">Notes</label>
+          <input type="text" id="edit-entity-notes" class="form-input" />
+        </div>
+
+        <div id="edit-entity-error" style="display: none; padding: 10px 12px; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; color: #991B1B; font-size: 13px; margin-bottom: 12px;"></div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <button type="button" id="edit-entity-delete" style="padding: 8px 14px; font-size: 13px; background: white; border: 1px solid #FECACA; border-radius: 8px; color: #991B1B; cursor: pointer;">Delete</button>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" id="edit-entity-cancel" class="btn-ghost-custom" style="padding: 8px 16px; font-size: 13px;">Cancel</button>
+            <button type="submit" class="btn-primary-custom" style="padding: 8px 16px; font-size: 13px;" id="edit-entity-save">Save</button>
+          </div>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- Notes -->
@@ -462,6 +673,110 @@ const statusLabels: Record<string, string> = {
           ))}
         </div>
       )}
+    </div>
+  </div>
+
+  <!-- Feedback History — Tom's calibration on this lead, drives Opus scoring on future runs -->
+  <div class="card-surface" style="padding: 24px; margin-top: 20px;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+      <h2 style="font-size: 15px; font-weight: 600; color: #111827; margin: 0;">Feedback & Calibration</h2>
+      <span style="font-size: 11px; padding: 2px 8px; background: #EEF2FF; color: #3730A3; border-radius: 999px; font-weight: 600;">TRAINS OPUS</span>
+    </div>
+
+    {feedbackHistory.length === 0 ? (
+      <p class="text-secondary" style="font-size: 13px;">
+        No feedback yet. When you dismiss, lose, or pursue a lead, you'll be prompted for a reason. Generalizable feedback feeds the next agent run's scoring.
+      </p>
+    ) : (
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        {feedbackHistory.map((f: any) => {
+          const isPositive = f.sentiment === 'positive'
+          const pillBg = isPositive ? '#ECFDF5' : '#FEF2F2'
+          const pillColor = isPositive ? '#065F46' : '#991B1B'
+          const pillBorder = isPositive ? '#A7F3D0' : '#FECACA'
+          return (
+            <div style="padding: 12px; background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style={`font-size: 11px; padding: 2px 10px; background: ${pillBg}; color: ${pillColor}; border: 1px solid ${pillBorder}; border-radius: 999px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;`}>
+                    {isPositive ? 'Liked' : 'Rejected'}
+                  </span>
+                  <span style="font-size: 13px; font-weight: 600; color: #111827;">{categoryLabel[f.category] || f.category}</span>
+                  {f.generalize && (
+                    <span style="font-size: 10px; padding: 1px 8px; background: #EEF2FF; color: #3730A3; border-radius: 999px; font-weight: 600;">IN CALIBRATION</span>
+                  )}
+                </div>
+                <span style="font-size: 12px; color: #9CA3AF;">{new Date(f.created_at).toLocaleDateString()}</span>
+              </div>
+              {f.reasoning && (
+                <div style="font-size: 13px; color: #374151; line-height: 1.6; margin-top: 4px;">{f.reasoning}</div>
+              )}
+              {f.status_at_feedback && (
+                <div style="font-size: 11px; color: #9CA3AF; margin-top: 4px;">Captured on move to: {f.status_at_feedback}</div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    )}
+  </div>
+
+  <!-- Feedback Modal — used by status transitions (dismissed/lost/no-bid/archived/pursuing/won)
+       and by the standalone "+ Add Feedback" button. Hidden by default. -->
+  <div
+    id="feedback-modal"
+    data-lead-id={lead.id}
+    data-current-status={lead.status}
+    style="display: none; position: fixed; inset: 0; background: rgba(17, 24, 39, 0.5); z-index: 100; align-items: center; justify-content: center; padding: 16px;"
+  >
+    <div style="background: white; border-radius: 12px; max-width: 520px; width: 100%; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+        <h3 id="feedback-modal-title" style="font-size: 16px; font-weight: 700; color: #111827; margin: 0;">Add Feedback</h3>
+        <button type="button" id="feedback-modal-close" style="background: none; border: none; cursor: pointer; font-size: 22px; color: #9CA3AF; line-height: 1;">&times;</button>
+      </div>
+      <p id="feedback-modal-subtitle" style="font-size: 13px; color: #6B7280; margin-bottom: 16px;">Your reasoning trains the scoring model for future leads.</p>
+
+      <form id="feedback-form">
+        <!-- Sentiment (visible only in standalone mode; hidden when driven by a status transition) -->
+        <div id="feedback-sentiment-wrap" style="display: none; margin-bottom: 14px;">
+          <label class="form-label">This lead was…</label>
+          <div style="display: flex; gap: 8px;">
+            <label style="flex: 1; display: flex; align-items: center; gap: 6px; padding: 10px; border: 1px solid #E5E7EB; border-radius: 8px; cursor: pointer; font-size: 13px;">
+              <input type="radio" name="feedback-sentiment" value="positive" /> Liked (pursue pattern)
+            </label>
+            <label style="flex: 1; display: flex; align-items: center; gap: 6px; padding: 10px; border: 1px solid #E5E7EB; border-radius: 8px; cursor: pointer; font-size: 13px;">
+              <input type="radio" name="feedback-sentiment" value="negative" checked /> Rejected (avoid pattern)
+            </label>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label class="form-label" for="feedback-category">Reason *</label>
+          <select id="feedback-category" class="form-input" required>
+            <option value="">Select a reason…</option>
+            <!-- Options injected by JS based on sentiment -->
+          </select>
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label class="form-label" for="feedback-reasoning">Why? (optional, but valuable)</label>
+          <textarea id="feedback-reasoning" class="form-input" rows="3" placeholder="e.g. $90M hospital is beyond our scale; we top out around $40M on institutional work."></textarea>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #374151; cursor: pointer;">
+            <input type="checkbox" id="feedback-generalize" checked /> Apply this reasoning to similar future leads
+          </label>
+          <div style="font-size: 11px; color: #9CA3AF; margin-top: 4px; margin-left: 22px;">Uncheck for one-off situations you don't want the agent to learn from.</div>
+        </div>
+
+        <div id="feedback-error" style="display: none; padding: 10px 12px; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; color: #991B1B; font-size: 13px; margin-bottom: 12px;"></div>
+
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button type="button" id="feedback-cancel" class="btn-ghost-custom" style="padding: 8px 16px; font-size: 13px;">Cancel</button>
+          <button type="submit" id="feedback-submit" class="btn-primary-custom" style="padding: 8px 16px; font-size: 13px;">Save Feedback</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -517,15 +832,221 @@ const statusLabels: Record<string, string> = {
     })
   }
 
-  // Status change buttons
+  // --- Feedback modal state + helpers ---
+  // Negative/positive status transitions trigger the modal (required reason
+  // before status changes). The standalone "+ Add Feedback" button also
+  // opens the modal but lets Tom pick sentiment manually.
+  const NEGATIVE_STATUSES = new Set(['dismissed', 'lost', 'no-bid', 'archived'])
+  const POSITIVE_STATUSES = new Set(['pursuing', 'won'])
+  const NEGATIVE_CATEGORIES: Array<[string, string]> = [
+    ['too-large', 'Too large — beyond our scale'],
+    ['too-small', 'Too small — below our threshold'],
+    ['wrong-sector', 'Wrong sector / project type'],
+    ['wrong-geography', 'Wrong geography / submarket'],
+    ['wrong-timing', 'Bad timing (too early or already awarded)'],
+    ['gc-locked-in', 'GC already locked in'],
+    ['competitor-incumbent', 'Relationship conflict / competitor incumbent'],
+    ['low-margin', 'Low margin / commodity work'],
+    ['other-negative', 'Other — see comment'],
+  ]
+  const POSITIVE_CATEGORIES: Array<[string, string]> = [
+    ['great-fit', 'Great fit — sweet spot'],
+    ['strong-developer', 'Strong developer / relationship'],
+    ['ideal-scale', 'Ideal scale / value'],
+    ['good-timing', 'Good timing — actionable now'],
+    ['relationship-advantage', 'Relationship advantage / warm intro'],
+    ['other-positive', 'Other — see comment'],
+  ]
+
+  const feedbackModal = document.getElementById('feedback-modal') as HTMLElement
+  const feedbackTitle = document.getElementById('feedback-modal-title') as HTMLElement
+  const feedbackSubtitle = document.getElementById('feedback-modal-subtitle') as HTMLElement
+  const feedbackSentimentWrap = document.getElementById('feedback-sentiment-wrap') as HTMLElement
+  const feedbackCategorySelect = document.getElementById('feedback-category') as HTMLSelectElement
+  const feedbackReasoning = document.getElementById('feedback-reasoning') as HTMLTextAreaElement
+  const feedbackGeneralize = document.getElementById('feedback-generalize') as HTMLInputElement
+  const feedbackError = document.getElementById('feedback-error') as HTMLElement
+  const feedbackSubmit = document.getElementById('feedback-submit') as HTMLButtonElement
+
+  // When a feedback save is tied to a status transition, we store the pending
+  // status here so the modal submit can run the status update after persisting
+  // feedback. null means standalone (no status change after).
+  let pendingStatusChange: string | null = null
+  let pendingStatusButton: HTMLButtonElement | null = null
+
+  function populateCategoryOptions(sentiment: 'positive' | 'negative') {
+    const options = sentiment === 'positive' ? POSITIVE_CATEGORIES : NEGATIVE_CATEGORIES
+    feedbackCategorySelect.innerHTML = '<option value="">Select a reason…</option>' +
+      options.map(([key, label]) => `<option value="${key}">${label}</option>`).join('')
+  }
+
+  function openFeedbackModal(opts: {
+    sentiment: 'positive' | 'negative' | null,  // null = standalone, let user pick
+    statusTransition: string | null,            // null = no status change after
+    statusButton: HTMLButtonElement | null,
+    title: string,
+    subtitle: string,
+  }) {
+    pendingStatusChange = opts.statusTransition
+    pendingStatusButton = opts.statusButton
+    feedbackTitle.textContent = opts.title
+    feedbackSubtitle.textContent = opts.subtitle
+    feedbackError.style.display = 'none'
+    feedbackReasoning.value = ''
+    feedbackGeneralize.checked = true
+    feedbackSubmit.disabled = false
+    feedbackSubmit.textContent = 'Save Feedback'
+
+    if (opts.sentiment) {
+      feedbackSentimentWrap.style.display = 'none'
+      populateCategoryOptions(opts.sentiment)
+    } else {
+      feedbackSentimentWrap.style.display = 'block'
+      const radios = feedbackSentimentWrap.querySelectorAll('input[name="feedback-sentiment"]') as NodeListOf<HTMLInputElement>
+      radios.forEach(r => { r.checked = r.value === 'negative' })
+      populateCategoryOptions('negative')
+    }
+
+    feedbackModal.style.display = 'flex'
+  }
+
+  function closeFeedbackModal() {
+    feedbackModal.style.display = 'none'
+    if (pendingStatusButton) {
+      // User cancelled the status transition — restore the button.
+      pendingStatusButton.disabled = false
+      const s = pendingStatusButton.dataset.status || ''
+      pendingStatusButton.textContent = s === 'no-bid' ? 'No-bid'
+        : s === 'market-intel' ? 'Market Intel'
+        : s.charAt(0).toUpperCase() + s.slice(1)
+    }
+    pendingStatusChange = null
+    pendingStatusButton = null
+  }
+
+  document.getElementById('feedback-modal-close')?.addEventListener('click', closeFeedbackModal)
+  document.getElementById('feedback-cancel')?.addEventListener('click', closeFeedbackModal)
+  feedbackModal?.addEventListener('click', (e) => {
+    if (e.target === feedbackModal) closeFeedbackModal()
+  })
+
+  // Sentiment toggle in standalone mode — repopulate categories.
+  feedbackSentimentWrap?.querySelectorAll('input[name="feedback-sentiment"]').forEach(r => {
+    r.addEventListener('change', (e) => {
+      const val = (e.target as HTMLInputElement).value as 'positive' | 'negative'
+      populateCategoryOptions(val)
+    })
+  })
+
+  document.getElementById('feedback-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const leadId = feedbackModal.dataset.leadId
+    const currentStatus = feedbackModal.dataset.currentStatus || ''
+    const category = feedbackCategorySelect.value
+    if (!category) {
+      feedbackError.textContent = 'Please pick a reason.'
+      feedbackError.style.display = 'block'
+      return
+    }
+
+    // Determine sentiment: driven by status transition if present, else radio.
+    let sentiment: 'positive' | 'negative'
+    if (pendingStatusChange && POSITIVE_STATUSES.has(pendingStatusChange)) {
+      sentiment = 'positive'
+    } else if (pendingStatusChange && NEGATIVE_STATUSES.has(pendingStatusChange)) {
+      sentiment = 'negative'
+    } else {
+      const checked = feedbackSentimentWrap.querySelector('input[name="feedback-sentiment"]:checked') as HTMLInputElement | null
+      sentiment = (checked?.value === 'positive' ? 'positive' : 'negative')
+    }
+
+    feedbackError.style.display = 'none'
+    feedbackSubmit.disabled = true
+    feedbackSubmit.textContent = 'Saving...'
+
+    try {
+      // Step 1: save feedback.
+      const fbRes = await fetch(`/api/leads/${leadId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          _addFeedback: {
+            sentiment,
+            category,
+            reasoning: feedbackReasoning.value.trim() || null,
+            generalize: feedbackGeneralize.checked,
+            status_at_feedback: pendingStatusChange || currentStatus,
+          }
+        })
+      })
+      if (!fbRes.ok) {
+        const data = await fbRes.json().catch(() => ({}))
+        throw new Error(data.error || `Save failed (${fbRes.status})`)
+      }
+
+      // Step 2: if this was driven by a status transition, apply it now.
+      if (pendingStatusChange) {
+        const stRes = await fetch(`/api/leads/${leadId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: pendingStatusChange })
+        })
+        if (!stRes.ok) {
+          const data = await stRes.json().catch(() => ({}))
+          throw new Error(data.error || `Status update failed (${stRes.status})`)
+        }
+      }
+
+      // Clear the button-restore handler before reload (status change succeeded).
+      pendingStatusButton = null
+      window.location.reload()
+    } catch (err: any) {
+      feedbackError.textContent = err?.message || 'Something went wrong.'
+      feedbackError.style.display = 'block'
+      feedbackSubmit.disabled = false
+      feedbackSubmit.textContent = 'Save Feedback'
+    }
+  })
+
+  // Standalone "+ Add Feedback" button.
+  document.getElementById('standalone-feedback-btn')?.addEventListener('click', () => {
+    openFeedbackModal({
+      sentiment: null,
+      statusTransition: null,
+      statusButton: null,
+      title: 'Add Feedback',
+      subtitle: "Tell the agent what you think about this lead. Your reasoning trains Opus scoring for future leads.",
+    })
+  })
+
+  // Status change buttons — intercept negative/positive transitions to require feedback.
   document.querySelectorAll('.status-change-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const el = btn as HTMLButtonElement
       const leadId = el.dataset.leadId
       const newStatus = el.dataset.status || ''
+
+      if (NEGATIVE_STATUSES.has(newStatus) || POSITIVE_STATUSES.has(newStatus)) {
+        const isPositive = POSITIVE_STATUSES.has(newStatus)
+        el.disabled = true
+        el.textContent = '...'
+        openFeedbackModal({
+          sentiment: isPositive ? 'positive' : 'negative',
+          statusTransition: newStatus,
+          statusButton: el,
+          title: isPositive
+            ? `Why pursuing this lead?`
+            : `Why ${newStatus === 'no-bid' ? 'no-bidding' : newStatus + 'ing'} this lead?`,
+          subtitle: isPositive
+            ? "The agent learns what to chase next. Pick the primary driver — comments are optional but valuable."
+            : "The agent learns what to filter out. Pick the primary reason — comments are optional but valuable.",
+        })
+        return
+      }
+
+      // Neutral transitions (new/tracking/market-intel): direct status change.
       el.textContent = '...'
       el.disabled = true
-
       try {
         const res = await fetch(`/api/leads/${leadId}`, {
           method: 'PUT',
@@ -624,6 +1145,211 @@ const statusLabels: Record<string, string> = {
     } finally {
       btn.textContent = 'Save Contact'
       btn.disabled = false
+    }
+  })
+
+  // Toggle organization form
+  const orgForm = document.getElementById('add-org-form') as HTMLFormElement
+  document.getElementById('toggle-org-form')?.addEventListener('click', () => {
+    if (!orgForm) return
+    orgForm.style.display = orgForm.style.display === 'none' ? 'block' : 'none'
+  })
+  document.getElementById('cancel-org')?.addEventListener('click', () => {
+    if (!orgForm) return
+    orgForm.style.display = 'none'
+    orgForm.reset()
+  })
+
+  // Save organization — stored as a lead_contacts row with entity_type='organization'.
+  // Website goes into notes as "Website: <url> — <rest>" so it survives the
+  // schema without needing a dedicated column.
+  orgForm?.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const leadId = (document.getElementById('org-lead-id') as HTMLInputElement)?.value
+    const btn = document.getElementById('save-org-btn') as HTMLButtonElement
+    btn.textContent = 'Saving...'
+    btn.disabled = true
+
+    const name = (document.getElementById('org-name') as HTMLInputElement).value.trim()
+    const role = (document.getElementById('org-role') as HTMLSelectElement).value || null
+    const website = (document.getElementById('org-website') as HTMLInputElement).value.trim()
+    const phone = (document.getElementById('org-phone') as HTMLInputElement).value.trim() || null
+    const notesText = (document.getElementById('org-notes') as HTMLInputElement).value.trim()
+    const combinedNotes = website ? (notesText ? `Website: ${website} — ${notesText}` : `Website: ${website}`) : (notesText || null)
+
+    const payload = {
+      lead_id: leadId,
+      name,
+      role,
+      company: name,
+      phone,
+      email: null,
+      notes: combinedNotes,
+      entity_type: 'organization',
+    }
+
+    try {
+      const res = await fetch(`/api/leads/${leadId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ _addContact: payload })
+      })
+      if (res.ok) {
+        window.location.reload()
+      } else {
+        const data = await res.json().catch(() => ({}))
+        alert('Error: ' + (data.error || 'Failed to save organization'))
+      }
+    } catch (err: any) {
+      alert('Error: ' + (err?.message || err))
+    } finally {
+      btn.textContent = 'Save Organization'
+      btn.disabled = false
+    }
+  })
+
+  // Edit contact / organization modal
+  const editModal = document.getElementById('edit-entity-modal') as HTMLElement
+  const editTitle = document.getElementById('edit-entity-title') as HTMLElement
+  const editNameLabel = document.getElementById('edit-name-label') as HTMLElement
+  const editRoleLabel = document.getElementById('edit-role-label') as HTMLElement
+  const editCompanyRow = document.getElementById('edit-company-row') as HTMLElement
+  const editWebsiteRow = document.getElementById('edit-website-row') as HTMLElement
+  const editErr = document.getElementById('edit-entity-error') as HTMLElement
+
+  function openEditModal(row: HTMLElement) {
+    const entityType = row.dataset.entityType || 'person'
+    const isOrg = entityType === 'organization'
+    editTitle.textContent = isOrg ? 'Edit Organization' : 'Edit Contact'
+    editNameLabel.textContent = isOrg ? 'Organization Name' : 'Name'
+    editRoleLabel.textContent = isOrg ? 'Type' : 'Role'
+    editCompanyRow.style.display = isOrg ? 'none' : 'block'
+    editWebsiteRow.style.display = isOrg ? 'block' : 'none'
+
+    ;(document.getElementById('edit-entity-id') as HTMLInputElement).value = row.dataset.contactId || ''
+    ;(document.getElementById('edit-entity-type') as HTMLInputElement).value = entityType
+    ;(document.getElementById('edit-entity-name') as HTMLInputElement).value = row.dataset.name || ''
+    ;(document.getElementById('edit-entity-role') as HTMLSelectElement).value = row.dataset.role || ''
+    ;(document.getElementById('edit-entity-company') as HTMLInputElement).value = row.dataset.company || ''
+    ;(document.getElementById('edit-entity-phone') as HTMLInputElement).value = row.dataset.phone || ''
+    ;(document.getElementById('edit-entity-email') as HTMLInputElement).value = row.dataset.email || ''
+
+    if (isOrg) {
+      ;(document.getElementById('edit-entity-website') as HTMLInputElement).value = row.dataset.website || ''
+      ;(document.getElementById('edit-entity-notes') as HTMLInputElement).value = row.dataset.noteRest || ''
+    } else {
+      ;(document.getElementById('edit-entity-notes') as HTMLInputElement).value = row.dataset.notes || ''
+    }
+
+    editErr.style.display = 'none'
+    editModal.style.display = 'flex'
+  }
+
+  function closeEditModal() {
+    editModal.style.display = 'none'
+  }
+
+  document.querySelectorAll('.contact-row, .org-row').forEach(row => {
+    row.addEventListener('click', (e) => {
+      // Ignore clicks on anchor tags inside (tel:/mailto:/website)
+      const target = e.target as HTMLElement
+      if (target.closest('a')) return
+      openEditModal(row as HTMLElement)
+    })
+  })
+
+  document.getElementById('edit-entity-close')?.addEventListener('click', closeEditModal)
+  document.getElementById('edit-entity-cancel')?.addEventListener('click', closeEditModal)
+  editModal?.addEventListener('click', (e) => {
+    if (e.target === editModal) closeEditModal()
+  })
+
+  document.getElementById('edit-entity-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const leadId = editModal.dataset.leadId
+    const contactId = (document.getElementById('edit-entity-id') as HTMLInputElement).value
+    const entityType = (document.getElementById('edit-entity-type') as HTMLInputElement).value
+    const isOrg = entityType === 'organization'
+    const saveBtn = document.getElementById('edit-entity-save') as HTMLButtonElement
+
+    const name = (document.getElementById('edit-entity-name') as HTMLInputElement).value.trim()
+    const role = (document.getElementById('edit-entity-role') as HTMLSelectElement).value || null
+    const phone = (document.getElementById('edit-entity-phone') as HTMLInputElement).value.trim() || null
+    const email = (document.getElementById('edit-entity-email') as HTMLInputElement).value.trim() || null
+    const notesField = (document.getElementById('edit-entity-notes') as HTMLInputElement).value.trim()
+
+    let company: string | null
+    let combinedNotes: string | null
+    if (isOrg) {
+      const website = (document.getElementById('edit-entity-website') as HTMLInputElement).value.trim()
+      company = name
+      combinedNotes = website ? (notesField ? `Website: ${website} — ${notesField}` : `Website: ${website}`) : (notesField || null)
+    } else {
+      company = (document.getElementById('edit-entity-company') as HTMLInputElement).value.trim() || null
+      combinedNotes = notesField || null
+    }
+
+    editErr.style.display = 'none'
+    saveBtn.disabled = true
+    saveBtn.textContent = 'Saving...'
+
+    try {
+      const res = await fetch(`/api/leads/${leadId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          _updateContact: {
+            id: contactId,
+            name,
+            role,
+            company,
+            phone,
+            email,
+            notes: combinedNotes,
+            entity_type: entityType,
+          }
+        })
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || `Save failed (${res.status})`)
+      }
+      window.location.reload()
+    } catch (err: any) {
+      editErr.textContent = err?.message || 'Save failed'
+      editErr.style.display = 'block'
+      saveBtn.disabled = false
+      saveBtn.textContent = 'Save'
+    }
+  })
+
+  document.getElementById('edit-entity-delete')?.addEventListener('click', async () => {
+    const contactId = (document.getElementById('edit-entity-id') as HTMLInputElement).value
+    const entityType = (document.getElementById('edit-entity-type') as HTMLInputElement).value
+    const leadId = editModal.dataset.leadId
+    const label = entityType === 'organization' ? 'organization' : 'contact'
+    if (!confirm(`Remove this ${label}? This cannot be undone.`)) return
+
+    const delBtn = document.getElementById('edit-entity-delete') as HTMLButtonElement
+    delBtn.disabled = true
+    delBtn.textContent = 'Deleting...'
+
+    try {
+      const res = await fetch(`/api/leads/${leadId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ _deleteContact: { id: contactId } })
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || `Delete failed (${res.status})`)
+      }
+      window.location.reload()
+    } catch (err: any) {
+      editErr.textContent = err?.message || 'Delete failed'
+      editErr.style.display = 'block'
+      delBtn.disabled = false
+      delBtn.textContent = 'Delete'
     }
   })
 
